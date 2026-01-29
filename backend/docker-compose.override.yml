@@ -1,9 +1,14 @@
-# All services separate for Vault - unique names & ports
+# Vault services - unique names & ports
+# Uses existing Ollama on host (port 11434)
 
 services:
-  # Disable traefik - using Cloudflare Tunnel instead
+  # Disable problematic services
   traefik:
     profiles: ["disabled"]
+  
+  ollama:
+    profiles: ["disabled"]
+
   postgres:
     container_name: vault-postgres
     ports:
@@ -20,11 +25,6 @@ services:
       - "7476:7474"
       - "7689:7687"
 
-  ollama:
-    container_name: vault-ollama
-    ports:
-      - "11435:11434"
-
   minio:
     container_name: vault-minio
     ports:
@@ -35,11 +35,19 @@ services:
     container_name: vault-api
     ports:
       - "8000:8000"
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   ai-service:
     container_name: vault-ai-service
     ports:
       - "8003:8000"
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   frontend:
     container_name: vault-frontend
