@@ -1,0 +1,220 @@
+# 0711 Vault - Local Development & Portable Deployment
+# Run: docker compose -f docker-compose.local.yml up -d
+# This same setup can be deployed to any server
+
+version: '3.9'
+
+services:
+  # ===========================================
+  # DATABASES
+  # ===========================================
+  
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vault-postgres
+    environment:
+      POSTGRES_USER: vault
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vault_local_dev_2024}
+      POSTGRES_DB: vault
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vault"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: vault-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j_local_dev_2024}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_initial__size: 256m
+      NEO4J_dbms_memory_heap_max__size: 512m
+    volumes:
+      - neo4j_data:/data
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: vault-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_local_dev_2024}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_local_dev_2024}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: vault-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-minio_local_dev_2024}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ===========================================
+  # AI / LLM
+  # ===========================================
+  
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vault-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    # For Apple Silicon Mac, uses Metal acceleration automatically
+    restart: unless-stopped
+
+  # ===========================================
+  # APPLICATION SERVICES
+  # ===========================================
+  
+  vault-api:
+    build:
+      context: ./services/vault-api
+      dockerfile: Dockerfile
+    container_name: vault-api
+    environment:
+      DATABASE_URL: postgresql://vault:${POSTGRES_PASSWORD:-vault_local_dev_2024}@postgres:5432/vault
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4j_local_dev_2024}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_local_dev_2024}@redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_PASSWORD:-minio_local_dev_2024}
+      OLLAMA_HOST: http://ollama:11434
+      JWT_SECRET: ${JWT_SECRET:-local_dev_jwt_secret_change_in_production}
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:8080"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: vault-ai
+    environment:
+      DATABASE_URL: postgresql://vault:${POSTGRES_PASSWORD:-vault_local_dev_2024}@postgres:5432/vault
+      OLLAMA_HOST: http://ollama:11434
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_local_dev_2024}@redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_PASSWORD:-minio_local_dev_2024}
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres
+      - ollama
+    restart: unless-stopped
+
+  # ===========================================
+  # FRONTEND
+  # ===========================================
+  
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: vault-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - vault-api
+    restart: unless-stopped
+
+  # ===========================================
+  # SETUP JOBS
+  # ===========================================
+  
+  # Pull Ollama models on first run
+  ollama-setup:
+    image: curlimages/curl:latest
+    container_name: vault-ollama-setup
+    depends_on:
+      - ollama
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "Waiting for Ollama..."
+        sleep 15
+        echo "Pulling embedding model..."
+        curl -X POST http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}'
+        echo ""
+        echo "Pulling small chat model..."
+        curl -X POST http://ollama:11434/api/pull -d '{"name":"llama3.2:1b"}'
+        echo ""
+        echo "Models ready!"
+    restart: "no"
+
+  # Create MinIO buckets
+  minio-setup:
+    image: minio/mc:latest
+    container_name: vault-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        sleep 5
+        mc alias set local http://minio:9000 ${MINIO_USER:-minioadmin} ${MINIO_PASSWORD:-minio_local_dev_2024}
+        mc mb local/vault --ignore-existing
+        mc mb local/thumbnails --ignore-existing
+        echo "Buckets created!"
+    restart: "no"
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  redis_data:
+  minio_data:
+  ollama_data:
+
+networks:
+  default:
+    name: vault-network

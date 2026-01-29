@@ -1,0 +1,23 @@
+# Hetzner Cloud Configuration
+# Copy to terraform.tfvars and fill in values
+
+# Get from: https://console.hetzner.cloud/projects/YOUR_PROJECT/security/tokens
+hcloud_token = "your-hetzner-api-token"
+
+# Environment
+environment = "production"  # or "staging"
+
+# Location
+location = "nbg1"  # Nürnberg (recommended)
+# Alternatives:
+# - fsn1 = Falkenstein
+# - hel1 = Helsinki
+
+# Domain
+domain = "0711.io"
+
+# SSH Keys (IDs from Hetzner console)
+ssh_keys = ["12345678"]
+
+# K3s Token (generate with: openssl rand -hex 32)
+k3s_token = "your-generated-k3s-token"

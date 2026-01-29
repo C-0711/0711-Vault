@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;500;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      width: 1080px;
+      height: 1080px;
+      background: #000;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Animated grid background */
+    .grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(102, 126, 234, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(102, 126, 234, 0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+    }
+    
+    @keyframes gridMove {
+      0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+      100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+    }
+    
+    /* Glowing orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.6;
+    }
+    
+    .orb1 {
+      width: 400px;
+      height: 400px;
+      background: #667eea;
+      top: -100px;
+      right: -100px;
+      animation: float1 8s ease-in-out infinite;
+    }
+    
+    .orb2 {
+      width: 300px;
+      height: 300px;
+      background: #f093fb;
+      bottom: -50px;
+      left: -50px;
+      animation: float2 10s ease-in-out infinite;
+    }
+    
+    .orb3 {
+      width: 200px;
+      height: 200px;
+      background: #4facfe;
+      top: 50%;
+      left: 50%;
+      animation: float3 6s ease-in-out infinite;
+    }
+    
+    @keyframes float1 {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-30px, 30px); }
+    }
+    
+    @keyframes float2 {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(40px, -20px); }
+    }
+    
+    @keyframes float3 {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.2); }
+    }
+    
+    /* Content */
+    .content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 60px;
+    }
+    
+    .logo {
+      font-family: 'Orbitron', monospace;
+      font-size: 180px;
+      font-weight: 900;
+      letter-spacing: -8px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 0%, #667eea 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 80px rgba(102, 126, 234, 0.5);
+      position: relative;
+    }
+    
+    .logo::after {
+      content: '0711';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #fff 0%, #667eea 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: blur(20px);
+      opacity: 0.5;
+    }
+    
+    .subtitle {
+      font-family: 'Orbitron', monospace;
+      font-size: 28px;
+      letter-spacing: 12px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 60px;
+    }
+    
+    .tagline {
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 50px;
+      max-width: 800px;
+    }
+    
+    .highlight {
+      background: linear-gradient(90deg, #667eea, #f093fb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .features {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 50px;
+    }
+    
+    .feature {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px 32px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .feature-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    
+    .feature-text {
+      font-size: 18px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+    
+    .cta {
+      font-family: 'Orbitron', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      padding: 20px 50px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 60px;
+      letter-spacing: 2px;
+      box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Scan lines */
+    .scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1),
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    /* Corner accents */
+    .corner {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      border: 2px solid rgba(102, 126, 234, 0.5);
+      z-index: 20;
+    }
+    
+    .corner-tl { top: 40px; left: 40px; border-right: none; border-bottom: none; }
+    .corner-tr { top: 40px; right: 40px; border-left: none; border-bottom: none; }
+    .corner-bl { bottom: 40px; left: 40px; border-right: none; border-top: none; }
+    .corner-br { bottom: 40px; right: 40px; border-left: none; border-top: none; }
+  </style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="scanlines"></div>
+  
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+  
+  <div class="content">
+    <div class="logo">0711</div>
+    <div class="subtitle">Digital Sovereignty</div>
+    
+    <div class="tagline">
+      <span class="highlight">Local AI</span> that runs<br>
+      on YOUR device
+    </div>
+    
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🔓</div>
+        <div class="feature-text">Open Source</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <div class="feature-text">iOS & Android</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🛡️</div>
+        <div class="feature-text">No Cloud</div>
+      </div>
+    </div>
+    
+    <div class="cta">YOUR AI • YOUR RULES</div>
+  </div>
+</body>
+</html>

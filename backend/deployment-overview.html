@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: #7d8590; margin-bottom: 32px; }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .card h3 {
+      font-size: 14px;
+      color: #7d8590;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    
+    .card .items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #21262d;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    
+    .item .icon { font-size: 16px; }
+    .item .name { font-family: 'JetBrains Mono', monospace; }
+    .item .badge {
+      margin-left: auto;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #238636;
+      color: white;
+    }
+    .item .badge.yaml { background: #1f6feb; }
+    .item .badge.tf { background: #7c4dff; }
+    .item .badge.py { background: #3572A5; }
+    .item .badge.sh { background: #89e051; color: black; }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .commands {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+    
+    .commands .line {
+      padding: 4px 0;
+    }
+    
+    .commands .comment { color: #7d8590; }
+    .commands .cmd { color: #79c0ff; }
+    .commands .arg { color: #a5d6ff; }
+    
+    .flow {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .flow-step {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+      min-width: 120px;
+    }
+    
+    .flow-step .num {
+      width: 24px;
+      height: 24px;
+      background: #238636;
+      color: white;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .flow-step .label {
+      font-size: 12px;
+      color: #7d8590;
+    }
+    
+    .flow-step .name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .arrow {
+      color: #30363d;
+      font-size: 20px;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    
+    .stat {
+      text-align: center;
+    }
+    
+    .stat .value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #238636;
+    }
+    
+    .stat .label {
+      font-size: 12px;
+      color: #7d8590;
+    }
+  </style>
+</head>
+<body>
+
+<h1>0711 Vault — Deployment Package</h1>
+<p class="subtitle">Complete production-ready backend infrastructure</p>
+
+<div class="stats">
+  <div class="stat">
+    <div class="value">35+</div>
+    <div class="label">Files</div>
+  </div>
+  <div class="stat">
+    <div class="value">12</div>
+    <div class="label">K8s Manifests</div>
+  </div>
+  <div class="stat">
+    <div class="value">6</div>
+    <div class="label">Services</div>
+  </div>
+  <div class="stat">
+    <div class="value">3</div>
+    <div class="label">Scripts</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>🐳 Docker</h3>
+    <div class="items">
+      <div class="item">
+        <span class="name">docker-compose.yml</span>
+        <span class="badge yaml">yaml</span>
+      </div>
+      <div class="item">
+        <span class="name">.env.example</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>☸️ Kubernetes</h3>
+    <div class="items">
+      <div class="item"><span class="name">namespace.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">secrets.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">postgres.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">neo4j.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">vault-api.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">ingress.yaml</span><span class="badge yaml">yaml</span></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>🏗️ Terraform</h3>
+    <div class="items">
+      <div class="item"><span class="name">main.tf</span><span class="badge tf">tf</span></div>
+      <div class="item"><span class="name">VPC + EKS</span></div>
+      <div class="item"><span class="name">RDS + Redis</span></div>
+      <div class="item"><span class="name">S3 + KMS</span></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>📊 Monitoring</h3>
+    <div class="items">
+      <div class="item"><span class="name">prometheus-values.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">alerts.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">grafana-dashboard.json</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>🐍 Vault API</h3>
+    <div class="items">
+      <div class="item"><span class="name">main.py</span><span class="badge py">py</span></div>
+      <div class="item"><span class="name">auth.py</span><span class="badge py">py</span></div>
+      <div class="item"><span class="name">vault.py</span><span class="badge py">py</span></div>
+      <div class="item"><span class="name">search.py</span><span class="badge py">py</span></div>
+      <div class="item"><span class="name">messages.py</span><span class="badge py">py</span></div>
+      <div class="item"><span class="name">sync.py</span><span class="badge py">py</span></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>🧠 AI Service</h3>
+    <div class="items">
+      <div class="item"><span class="name">main.py</span><span class="badge py">py</span></div>
+      <div class="item"><span class="name">Embeddings</span></div>
+      <div class="item"><span class="name">OCR</span></div>
+      <div class="item"><span class="name">Vision (LLaVA)</span></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>⚙️ Scripts</h3>
+    <div class="items">
+      <div class="item"><span class="name">deploy.sh</span><span class="badge sh">sh</span></div>
+      <div class="item"><span class="name">backup.sh</span><span class="badge sh">sh</span></div>
+      <div class="item"><span class="name">restore.sh</span><span class="badge sh">sh</span></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>🔄 CI/CD</h3>
+    <div class="items">
+      <div class="item"><span class="name">ci-cd.yaml</span><span class="badge yaml">yaml</span></div>
+      <div class="item"><span class="name">Build + Test</span></div>
+      <div class="item"><span class="name">Security Scan</span></div>
+      <div class="item"><span class="name">Canary Deploy</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>🚀 Deployment Flow</h2>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="num">1</div>
+      <div class="name">terraform apply</div>
+      <div class="label">VPC, EKS, RDS</div>
+    </div>
+    <span class="arrow">→</span>
+    <div class="flow-step">
+      <div class="num">2</div>
+      <div class="name">kubectl apply</div>
+      <div class="label">K8s Manifests</div>
+    </div>
+    <span class="arrow">→</span>
+    <div class="flow-step">
+      <div class="num">3</div>
+      <div class="name">Helm install</div>
+      <div class="label">Monitoring</div>
+    </div>
+    <span class="arrow">→</span>
+    <div class="flow-step">
+      <div class="num">4</div>
+      <div class="name">DNS + TLS</div>
+      <div class="label">Cert-Manager</div>
+    </div>
+    <span class="arrow">→</span>
+    <div class="flow-step">
+      <div class="num">5</div>
+      <div class="name">✅ Live!</div>
+      <div class="label">api.0711.io</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>💻 Quick Commands</h2>
+  <div class="commands">
+    <div class="line"><span class="comment"># Local development</span></div>
+    <div class="line"><span class="cmd">docker compose</span> <span class="arg">up -d</span></div>
+    <div class="line"></div>
+    <div class="line"><span class="comment"># Production deployment</span></div>
+    <div class="line"><span class="cmd">./scripts/deploy.sh</span> <span class="arg">production</span></div>
+    <div class="line"></div>
+    <div class="line"><span class="comment"># Check status</span></div>
+    <div class="line"><span class="cmd">kubectl get pods</span> <span class="arg">-n vault-0711</span></div>
+    <div class="line"></div>
+    <div class="line"><span class="comment"># View logs</span></div>
+    <div class="line"><span class="cmd">kubectl logs -f</span> <span class="arg">deployment/vault-api -n vault-0711</span></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  VAULT_API_IMAGE: ghcr.io/${{ github.repository_owner }}/vault-api
+  AI_SERVICE_IMAGE: ghcr.io/${{ github.repository_owner }}/ai-service
+
+jobs:
+  # ===========================================
+  # LINT & TEST
+  # ===========================================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        cd services/vault-api
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov httpx
+    
+    - name: Lint
+      run: |
+        pip install ruff
+        ruff check services/
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: postgresql://test:test@localhost:5432/test
+        REDIS_URL: redis://localhost:6379
+        JWT_SECRET: test-secret
+      run: |
+        cd services/vault-api
+        pytest --cov=. --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./services/vault-api/coverage.xml
+
+  # ===========================================
+  # BUILD & PUSH
+  # ===========================================
+  build:
+    name: Build Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    strategy:
+      matrix:
+        service:
+          - name: vault-api
+            context: ./services/vault-api
+          - name: ai-service
+            context: ./services/ai-service
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service.name }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix=
+    
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: ${{ matrix.service.context }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  # ===========================================
+  # SECURITY SCAN
+  # ===========================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.VAULT_API_IMAGE }}:${{ github.sha }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # ===========================================
+  # DEPLOY TO STAGING
+  # ===========================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+    
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update image tags
+        kubectl set image deployment/vault-api \
+          vault-api=${{ env.VAULT_API_IMAGE }}:${{ github.sha }} \
+          -n vault-0711-staging
+        
+        kubectl set image deployment/ai-service \
+          ai-service=${{ env.AI_SERVICE_IMAGE }}:${{ github.sha }} \
+          -n vault-0711-staging
+        
+        # Wait for rollout
+        kubectl rollout status deployment/vault-api -n vault-0711-staging --timeout=300s
+        kubectl rollout status deployment/ai-service -n vault-0711-staging --timeout=300s
+    
+    - name: Run smoke tests
+      run: |
+        sleep 30
+        curl -f https://api.staging.0711.io/health || exit 1
+
+  # ===========================================
+  # DEPLOY TO PRODUCTION
+  # ===========================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.event_name == 'release'
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+    
+    - name: Create backup before deploy
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl exec -n vault-0711 postgres-0 -- \
+          pg_dump -U vault vault > backup-$(date +%Y%m%d-%H%M%S).sql
+    
+    - name: Deploy with canary
+      run: |
+        export KUBECONFIG=kubeconfig
+        VERSION=${{ github.event.release.tag_name }}
+        
+        # Deploy canary (10% traffic)
+        kubectl apply -f k8s/canary-deployment.yaml
+        kubectl set image deployment/vault-api-canary \
+          vault-api=${{ env.VAULT_API_IMAGE }}:${VERSION} \
+          -n vault-0711
+        
+        # Wait and monitor
+        sleep 60
+        
+        # Check error rate
+        ERROR_RATE=$(curl -s "https://prometheus.0711.io/api/v1/query?query=sum(rate(http_requests_total{status=~\"5..\",deployment=\"canary\"}[5m]))" | jq -r '.data.result[0].value[1]')
+        
+        if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+          echo "Canary failed - rolling back"
+          kubectl rollout undo deployment/vault-api-canary -n vault-0711
+          exit 1
+        fi
+        
+        # Full rollout
+        kubectl set image deployment/vault-api \
+          vault-api=${{ env.VAULT_API_IMAGE }}:${VERSION} \
+          -n vault-0711
+        
+        kubectl set image deployment/ai-service \
+          ai-service=${{ env.AI_SERVICE_IMAGE }}:${VERSION} \
+          -n vault-0711
+        
+        kubectl rollout status deployment/vault-api -n vault-0711 --timeout=600s
+        kubectl rollout status deployment/ai-service -n vault-0711 --timeout=600s
+    
+    - name: Notify deployment
+      uses: slackapi/slack-github-action@v1
+      with:
+        payload: |
+          {
+            "text": "🚀 Vault ${{ github.event.release.tag_name }} deployed to production"
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

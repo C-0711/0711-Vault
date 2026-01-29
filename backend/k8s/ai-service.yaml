@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: vault-0711
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      containers:
+      - name: ai-service
+        image: ghcr.io/0711/ai-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: DATABASE_URL
+        - name: OLLAMA_HOST
+          value: "http://ollama:11434"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: REDIS_URL
+        - name: MINIO_ENDPOINT
+          value: "minio:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: MINIO_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: MINIO_SECRET_KEY
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      imagePullSecrets:
+      - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: vault-0711
+spec:
+  selector:
+    app: ai-service
+  ports:
+  - port: 8000
+    targetPort: 8000
+---
+# Ollama for local LLM inference
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: vault-0711
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+        volumeMounts:
+        - name: ollama-models
+          mountPath: /root/.ollama
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+            # For GPU support, uncomment:
+            # nvidia.com/gpu: 1
+          limits:
+            cpu: "8"
+            memory: "16Gi"
+            # nvidia.com/gpu: 1
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: ollama-models
+        persistentVolumeClaim:
+          claimName: ollama-models-pvc
+      # Uncomment for GPU support:
+      # nodeSelector:
+      #   nvidia.com/gpu: "true"
+      # tolerations:
+      # - key: nvidia.com/gpu
+      #   operator: Exists
+      #   effect: NoSchedule
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models-pvc
+  namespace: vault-0711
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: vault-0711
+spec:
+  selector:
+    app: ollama
+  ports:
+  - port: 11434
+    targetPort: 11434
+---
+# Job to pull required models
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-model-pull
+  namespace: vault-0711
+spec:
+  template:
+    spec:
+      containers:
+      - name: ollama-pull
+        image: ollama/ollama:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          sleep 30
+          OLLAMA_HOST=http://ollama:11434
+          echo "Pulling embedding model..."
+          curl -X POST $OLLAMA_HOST/api/pull -d '{"name": "nomic-embed-text"}'
+          echo "Pulling vision model..."
+          curl -X POST $OLLAMA_HOST/api/pull -d '{"name": "llava:7b"}'
+          echo "Pulling chat model..."
+          curl -X POST $OLLAMA_HOST/api/pull -d '{"name": "llama3.2:3b"}'
+          echo "Models pulled successfully"
+      restartPolicy: OnFailure
+  backoffLimit: 3

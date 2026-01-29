@@ -1,0 +1,57 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.xcuserdata/
+*.xcworkspace/
+
+# iOS
+Vault0711/DerivedData/
+Vault0711/build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.env
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.next/
+.nuxt/
+*.log
+npm-debug.log*
+
+# Docker
+*.log
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Data
+*.db
+*.sqlite
+data/
+uploads/
+
+# Build
+build/
+target/
+*.o
+*.a

@@ -1,0 +1,76 @@
+{
+  "app_name": "0711 Vault",
+  "subtitle": "Your Photos. Your AI. Your Control.",
+  "bundle_id": "io.0711.vault",
+  "version": "1.0.0",
+  "build": "1",
+  "category": "Photo & Video",
+  "secondary_category": "Utilities",
+  "content_rating": "4+",
+  "privacy_url": "https://0711.io/privacy",
+  "support_url": "https://0711.io/support",
+  "marketing_url": "https://0711.io",
+  
+  "locales": {
+    "en-US": {
+      "name": "0711 Vault",
+      "subtitle": "Your Photos. Your AI. Your Control.",
+      "description": "0711 Vault is a privacy-first photo and document vault with AI-powered organization. Unlike other cloud services, YOUR data stays on YOUR devices.\n\n🔒 ZERO-KNOWLEDGE ENCRYPTION\n• End-to-end encryption with keys only you control\n• Your password never leaves your device\n• We can't see your photos - ever\n\n🧠 LOCAL AI PROCESSING\n• Face recognition that works offline\n• Automatic photo organization\n• Smart search: \"Photos with Mom at the beach\"\n• Document OCR and categorization\n\n📱 YOUR DATA, YOUR DEVICES\n• Photos stay on your iPhone, Mac, or home server\n• No subscription fees for local storage\n• Optional encrypted cloud backup\n• Export everything anytime\n\n🎯 FEATURES\n• Import from Apple Photos\n• Face detection and person tagging\n• Location-based organization\n• Document vault with OCR\n• Semantic search powered by AI\n• Biometric unlock (Face ID / Touch ID)\n• Dark mode\n\n💡 WHY 0711?\n• We believe your memories belong to you\n• No ads, no tracking, no data mining\n• Open source core\n• Made in Germany 🇩🇪\n\nFree your data from Big Tech. Your photos deserve better.",
+      "keywords": "photo,vault,privacy,ai,face recognition,encryption,backup,secure,photos,documents,local,offline",
+      "promotional_text": "Your photos. Your AI. Your control. Free your data from Big Tech.",
+      "whats_new": "Initial release! Import your photos, let AI organize them, and keep everything private."
+    },
+    "de-DE": {
+      "name": "0711 Vault",
+      "subtitle": "Deine Fotos. Deine KI. Deine Kontrolle.",
+      "description": "0711 Vault ist ein datenschutzfreundlicher Foto- und Dokumententresor mit KI-gestützter Organisation. Anders als bei anderen Cloud-Diensten bleiben DEINE Daten auf DEINEN Geräten.\n\n🔒 ZERO-KNOWLEDGE-VERSCHLÜSSELUNG\n• Ende-zu-Ende-Verschlüsselung mit Schlüsseln, die nur du kontrollierst\n• Dein Passwort verlässt nie dein Gerät\n• Wir können deine Fotos nicht sehen - niemals\n\n🧠 LOKALE KI-VERARBEITUNG\n• Gesichtserkennung die offline funktioniert\n• Automatische Fotoorganisation\n• Intelligente Suche: \"Fotos mit Mama am Strand\"\n• Dokument-OCR und Kategorisierung\n\n📱 DEINE DATEN, DEINE GERÄTE\n• Fotos bleiben auf deinem iPhone, Mac oder Heimserver\n• Keine Abo-Gebühren für lokalen Speicher\n• Optionales verschlüsseltes Cloud-Backup\n• Exportiere alles jederzeit\n\n🎯 FUNKTIONEN\n• Import aus Apple Fotos\n• Gesichtserkennung und Personen-Tagging\n• Ortsbasierte Organisation\n• Dokumententresor mit OCR\n• Semantische KI-Suche\n• Biometrische Entsperrung (Face ID / Touch ID)\n• Dark Mode\n\n💡 WARUM 0711?\n• Wir glauben, dass deine Erinnerungen dir gehören\n• Keine Werbung, kein Tracking, kein Data Mining\n• Open Source Kern\n• Made in Germany 🇩🇪\n\nBefreie deine Daten von Big Tech. Deine Fotos verdienen Besseres.",
+      "keywords": "foto,tresor,datenschutz,ki,gesichtserkennung,verschlüsselung,backup,sicher,fotos,dokumente,lokal,offline",
+      "promotional_text": "Deine Fotos. Deine KI. Deine Kontrolle. Befreie deine Daten von Big Tech.",
+      "whats_new": "Erste Veröffentlichung! Importiere deine Fotos, lass die KI sie organisieren und behalte alles privat."
+    }
+  },
+  
+  "age_rating": {
+    "alcohol_tobacco_drugs": "none",
+    "contests": "none",
+    "gambling": "none",
+    "horror": "none",
+    "mature_content": "none",
+    "medical": "none",
+    "profanity": "none",
+    "sexual_content": "none",
+    "violence": "none"
+  },
+  
+  "app_review_info": {
+    "demo_account": {
+      "email": "demo@0711.io",
+      "password": "Demo1234!"
+    },
+    "notes": "This app stores photos and documents locally with end-to-end encryption. The AI processing happens on-device using Apple's Core ML and our custom models. No data is sent to external servers without explicit user consent. The app requires photo library access to import photos."
+  },
+  
+  "screenshots": {
+    "iPhone_6.7": [
+      "01-welcome.png",
+      "02-import.png", 
+      "03-photos.png",
+      "04-faces.png",
+      "05-search.png",
+      "06-settings.png"
+    ],
+    "iPhone_6.5": [
+      "01-welcome.png",
+      "02-import.png",
+      "03-photos.png",
+      "04-faces.png",
+      "05-search.png",
+      "06-settings.png"
+    ],
+    "iPad_12.9": [
+      "01-welcome.png",
+      "02-photos.png",
+      "03-search.png"
+    ]
+  }
+}

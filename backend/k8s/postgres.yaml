@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: vault-0711
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd  # Adjust for your cluster
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: vault-0711
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      containers:
+      - name: postgres
+        image: pgvector/pgvector:pg16
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: POSTGRES_DB
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - vault
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - vault
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      
+      # Postgres Exporter for Prometheus
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:v0.15.0
+        ports:
+        - containerPort: 9187
+          name: metrics
+        env:
+        - name: DATA_SOURCE_URI
+          value: "localhost:5432/vault?sslmode=disable"
+        - name: DATA_SOURCE_USER
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: POSTGRES_USER
+        - name: DATA_SOURCE_PASS
+          valueFrom:
+            secretKeyRef:
+              name: vault-secrets
+              key: POSTGRES_PASSWORD
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: init-scripts
+        configMap:
+          name: postgres-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: vault-0711
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None  # Headless for StatefulSet
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: vault-0711
+data:
+  01-init.sql: |
+    -- Enable extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    CREATE EXTENSION IF NOT EXISTS "vector";
+    
+    -- Users table
+    CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        auth_hash VARCHAR(255) NOT NULL,
+        salt VARCHAR(255) NOT NULL,
+        encrypted_master_key TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    
+    -- Vault items
+    CREATE TABLE IF NOT EXISTS vault_items (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        item_type VARCHAR(50) NOT NULL,
+        storage_path TEXT NOT NULL,
+        encrypted_metadata TEXT,
+        file_size BIGINT,
+        sync_version BIGINT DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_at TIMESTAMPTZ
+    );
+    
+    -- Embeddings with pgvector
+    CREATE TABLE IF NOT EXISTS embeddings (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        vault_item_id UUID REFERENCES vault_items(id) ON DELETE CASCADE,
+        embedding vector(768),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    
+    -- HNSW index for fast similarity search
+    CREATE INDEX IF NOT EXISTS idx_embeddings_vector ON embeddings 
+    USING hnsw (embedding vector_cosine_ops);

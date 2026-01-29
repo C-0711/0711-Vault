@@ -1,0 +1,171 @@
+"""
+0711 Vault Background Worker
+Processes images: face detection, embeddings, OCR
+"""
+
+import asyncio
+import os
+import httpx
+import asyncpg
+from datetime import datetime
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8001")
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+
+async def process_item(conn, item_id: str, user_id: str, task_type: str):
+    """Process a single item from the queue."""
+    print(f"Processing item {item_id} ({task_type})")
+    
+    try:
+        # Get item details
+        item = await conn.fetchrow("""
+            SELECT id, storage_key, item_type, mime_type
+            FROM vault_items
+            WHERE id = $1 AND user_id = $2
+        """, item_id, user_id)
+        
+        if not item:
+            print(f"Item {item_id} not found")
+            return False
+        
+        # Download file from MinIO
+        file_url = f"http://{MINIO_ENDPOINT}/vault/{item['storage_key']}"
+        
+        async with httpx.AsyncClient() as client:
+            # Download file
+            file_response = await client.get(file_url, timeout=60)
+            if file_response.status_code != 200:
+                print(f"Failed to download file: {file_response.status_code}")
+                return False
+            
+            file_data = file_response.content
+            
+            # Process with AI service
+            if item['item_type'] == 'photo':
+                # Full image processing
+                response = await client.post(
+                    f"{AI_SERVICE_URL}/process/full",
+                    files={"file": ("image.jpg", file_data, item['mime_type'] or "image/jpeg")},
+                    data={
+                        "detect_faces": "true",
+                        "generate_embedding": "true",
+                        "analyze": "true"
+                    },
+                    timeout=120
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Save embedding
+                    if "embedding" in result and result["embedding"]:
+                        embedding_str = "[" + ",".join(map(str, result["embedding"])) + "]"
+                        await conn.execute("""
+                            INSERT INTO embeddings (item_id, user_id, embedding_type, embedding)
+                            VALUES ($1, $2, 'clip', $3::vector)
+                        """, item_id, user_id, embedding_str)
+                    
+                    # Save detected faces
+                    if "faces" in result:
+                        for face in result["faces"]:
+                            await conn.execute("""
+                                INSERT INTO faces (item_id, user_id, bbox_x, bbox_y, bbox_width, bbox_height, detection_confidence)
+                                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                            """, item_id, user_id, 
+                                face["bbox_x"], face["bbox_y"], 
+                                face["bbox_width"], face["bbox_height"],
+                                face.get("confidence", 0.0))
+                    
+                    print(f"Processed photo: {len(result.get('faces', []))} faces, embedding saved")
+                
+            elif item['item_type'] == 'document':
+                # OCR and categorization
+                response = await client.post(
+                    f"{AI_SERVICE_URL}/categorize/document",
+                    files={"file": ("document.pdf", file_data, item['mime_type'] or "application/pdf")},
+                    timeout=120
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    await conn.execute("""
+                        INSERT INTO document_metadata (item_id, user_id, category, encrypted_summary)
+                        VALUES ($1, $2, $3, $4)
+                        ON CONFLICT (item_id) DO UPDATE SET category = $3, encrypted_summary = $4
+                    """, item_id, user_id, 
+                        result.get("category", "other"),
+                        result.get("summary", ""))
+                    
+                    print(f"Processed document: {result.get('category')}")
+        
+        # Update item status
+        await conn.execute("""
+            UPDATE vault_items 
+            SET processing_status = 'complete', processed_at = NOW()
+            WHERE id = $1
+        """, item_id)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error processing item {item_id}: {e}")
+        return False
+
+
+async def worker_loop():
+    """Main worker loop - polls queue and processes items."""
+    print("🚀 Starting 0711 Worker...")
+    
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    
+    while True:
+        try:
+            async with pool.acquire() as conn:
+                # Get next item from queue
+                task = await conn.fetchrow("""
+                    UPDATE processing_queue
+                    SET status = 'processing', started_at = NOW(), attempts = attempts + 1
+                    WHERE id = (
+                        SELECT id FROM processing_queue
+                        WHERE status = 'pending' AND attempts < max_attempts
+                        ORDER BY priority DESC, created_at ASC
+                        LIMIT 1
+                        FOR UPDATE SKIP LOCKED
+                    )
+                    RETURNING id, item_id, user_id, task_type
+                """)
+                
+                if task:
+                    success = await process_item(
+                        conn, 
+                        str(task["item_id"]), 
+                        str(task["user_id"]), 
+                        task["task_type"]
+                    )
+                    
+                    if success:
+                        await conn.execute("""
+                            UPDATE processing_queue
+                            SET status = 'complete', completed_at = NOW()
+                            WHERE id = $1
+                        """, task["id"])
+                    else:
+                        await conn.execute("""
+                            UPDATE processing_queue
+                            SET status = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'pending' END,
+                                error_message = 'Processing failed'
+                            WHERE id = $1
+                        """, task["id"])
+                else:
+                    # No tasks, sleep
+                    await asyncio.sleep(5)
+                    
+        except Exception as e:
+            print(f"Worker error: {e}")
+            await asyncio.sleep(10)
+
+
+if __name__ == "__main__":
+    asyncio.run(worker_loop())

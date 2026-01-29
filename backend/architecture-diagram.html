@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>0711 Vault - Backend Architecture</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      color: white;
+      min-height: 100vh;
+      padding: 40px;
+    }
+    
+    h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #fff, #888);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 40px;
+    }
+    
+    .architecture {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .layer {
+      position: relative;
+    }
+    
+    .layer-label {
+      position: absolute;
+      left: -100px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #444;
+      white-space: nowrap;
+    }
+    
+    .row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 140px;
+      text-align: center;
+    }
+    
+    .box.highlight {
+      border-color: #30d158;
+      background: rgba(48,209,88,0.05);
+    }
+    
+    .box .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    
+    .box .name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    
+    .box .desc {
+      font-size: 11px;
+      color: #666;
+    }
+    
+    .box .tech {
+      font-size: 10px;
+      color: #30d158;
+      margin-top: 8px;
+      font-family: monospace;
+    }
+    
+    .connector {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+    
+    .connector .line {
+      width: 2px;
+      height: 40px;
+      background: linear-gradient(180deg, #333, #222);
+    }
+    
+    .connector .arrow {
+      color: #333;
+      font-size: 20px;
+    }
+    
+    .clients {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+    }
+    
+    .client {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .client .device {
+      font-size: 40px;
+    }
+    
+    .client .label {
+      font-size: 12px;
+      color: #888;
+    }
+    
+    /* Gateway */
+    .gateway {
+      background: linear-gradient(90deg, rgba(0,122,255,0.1), rgba(0,122,255,0.05));
+      border-color: rgba(0,122,255,0.3);
+      width: 100%;
+      max-width: 800px;
+    }
+    
+    /* Services row */
+    .services {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+    
+    .service {
+      flex: 1;
+      max-width: 200px;
+    }
+    
+    .service.auth { border-color: #ff9500; background: rgba(255,149,0,0.05); }
+    .service.api { border-color: #30d158; background: rgba(48,209,88,0.05); }
+    .service.ai { border-color: #bf5af2; background: rgba(191,90,242,0.05); }
+    
+    /* Data layer */
+    .data-layer {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .db {
+      width: 150px;
+    }
+    
+    .db.postgres { border-color: #336791; background: rgba(51,103,145,0.1); }
+    .db.neo4j { border-color: #018bff; background: rgba(1,139,255,0.1); }
+    .db.redis { border-color: #dc382d; background: rgba(220,56,45,0.1); }
+    .db.minio { border-color: #c72c48; background: rgba(199,44,72,0.1); }
+    .db.ollama { border-color: #fff; background: rgba(255,255,255,0.05); }
+    
+    /* Flow section */
+    .flow-section {
+      margin-top: 60px;
+      padding-top: 40px;
+      border-top: 1px solid #222;
+    }
+    
+    .flow-section h2 {
+      font-size: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .flow {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 20px;
+    }
+    
+    .flow-step {
+      min-width: 200px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+    
+    .flow-step::after {
+      content: '→';
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #333;
+      font-size: 20px;
+    }
+    
+    .flow-step:last-child::after {
+      display: none;
+    }
+    
+    .flow-step .num {
+      width: 24px;
+      height: 24px;
+      background: #30d158;
+      color: black;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    
+    .flow-step h4 {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    
+    .flow-step p {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.5;
+    }
+    
+    .flow-step .tag {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 8px;
+      background: rgba(48,209,88,0.1);
+      color: #30d158;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  
+  <h1>0711 Vault — Backend Architecture</h1>
+  <p class="subtitle">Zero-knowledge encrypted storage platform</p>
+  
+  <div class="architecture">
+    
+    <!-- Clients -->
+    <div class="layer">
+      <div class="clients">
+        <div class="client">
+          <span class="device">📱</span>
+          <span class="label">iOS App</span>
+        </div>
+        <div class="client">
+          <span class="device">🤖</span>
+          <span class="label">Android</span>
+        </div>
+        <div class="client">
+          <span class="device">🌐</span>
+          <span class="label">Web App</span>
+        </div>
+        <div class="client">
+          <span class="device">💻</span>
+          <span class="label">Mac App</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="connector">
+      <div class="line"></div>
+    </div>
+    
+    <!-- Gateway -->
+    <div class="layer">
+      <div class="row">
+        <div class="box gateway">
+          <div class="icon">🚪</div>
+          <div class="name">API Gateway</div>
+          <div class="desc">SSL Termination, Rate Limiting, Load Balancing</div>
+          <div class="tech">Traefik</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="connector">
+      <div class="line"></div>
+    </div>
+    
+    <!-- Services -->
+    <div class="layer">
+      <div class="services">
+        <div class="box service auth">
+          <div class="icon">🔐</div>
+          <div class="name">Auth Service</div>
+          <div class="desc">OAuth2, 2FA, SSO</div>
+          <div class="tech">Keycloak</div>
+        </div>
+        <div class="box service api">
+          <div class="icon">⚡</div>
+          <div class="name">Vault API</div>
+          <div class="desc">CRUD, Sync, Search</div>
+          <div class="tech">FastAPI</div>
+        </div>
+        <div class="box service ai">
+          <div class="icon">🧠</div>
+          <div class="name">AI Service</div>
+          <div class="desc">Embeddings, OCR</div>
+          <div class="tech">FastAPI + Ollama</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="connector">
+      <div class="line"></div>
+    </div>
+    
+    <!-- Data Layer -->
+    <div class="layer">
+      <div class="data-layer">
+        <div class="box db postgres">
+          <div class="icon">🐘</div>
+          <div class="name">PostgreSQL</div>
+          <div class="desc">Users, Metadata, Vectors</div>
+          <div class="tech">+ pgvector</div>
+        </div>
+        <div class="box db neo4j">
+          <div class="icon">🕸️</div>
+          <div class="name">Neo4j</div>
+          <div class="desc">Relationships, Graph</div>
+          <div class="tech">Cypher</div>
+        </div>
+        <div class="box db redis">
+          <div class="icon">⚡</div>
+          <div class="name">Redis</div>
+          <div class="desc">Cache, Sessions, PubSub</div>
+          <div class="tech">7.x</div>
+        </div>
+        <div class="box db minio">
+          <div class="icon">📦</div>
+          <div class="name">MinIO</div>
+          <div class="desc">Encrypted Files</div>
+          <div class="tech">S3 API</div>
+        </div>
+        <div class="box db ollama">
+          <div class="icon">🦙</div>
+          <div class="name">Ollama</div>
+          <div class="desc">Local LLM</div>
+          <div class="tech">llama3, llava</div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- Data Flow -->
+  <div class="flow-section">
+    <h2>📤 Photo Upload Flow</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <h4>Client Selection</h4>
+        <p>User selects photos via PHPicker (iOS) - no permission dialog needed</p>
+        <span class="tag">CLIENT</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <h4>Client Encryption</h4>
+        <p>Photos encrypted with AES-256 using user's master key</p>
+        <span class="tag">CLIENT</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <h4>Upload to MinIO</h4>
+        <p>Encrypted blob uploaded directly to S3-compatible storage</p>
+        <span class="tag">SERVER</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <h4>AI Processing</h4>
+        <p>Generate description, tags, and embedding vector (async)</p>
+        <span class="tag">AI SERVICE</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">5</div>
+        <h4>Graph Update</h4>
+        <p>Detect faces → Person nodes, Extract location → Location nodes</p>
+        <span class="tag">NEO4J</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">6</div>
+        <h4>Sync</h4>
+        <p>Changes synced to other devices via WebSocket</p>
+        <span class="tag">REALTIME</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flow-section">
+    <h2>🔍 Semantic Search Flow</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <h4>Query Input</h4>
+        <p>"Fotos vom Strand letzten Sommer"</p>
+        <span class="tag">CLIENT</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <h4>Embedding</h4>
+        <p>Query converted to 768-dim vector via Ollama nomic-embed</p>
+        <span class="tag">AI SERVICE</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <h4>Vector Search</h4>
+        <p>pgvector finds similar embeddings using cosine distance</p>
+        <span class="tag">POSTGRES</span>
+      </div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <h4>Results</h4>
+        <p>Return encrypted metadata, client decrypts and displays</p>
+        <span class="tag">CLIENT</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
