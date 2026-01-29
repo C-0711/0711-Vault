@@ -13,8 +13,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init/postgres:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5432:5432"
+    # ports: # Override file provides ports (9500+)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vault"]
       interval: 5s
@@ -28,8 +27,7 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
-    ports:
-      - "6379:6379"
+    # ports: # Override file provides ports (9500+)
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -41,13 +39,11 @@ services:
     image: neo4j:5
     container_name: 0711-neo4j
     environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-vault}
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-vault0711}
       NEO4J_PLUGINS: '["apoc"]'
     volumes:
       - neo4j-data:/data
-    ports:
-      - "7474:7474"
-      - "7687:7687"
+    # ports: # Override file provides ports (9500+)
     restart: unless-stopped
 
   # ===========================================
@@ -63,9 +59,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - minio-data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    # ports: # Override file provides ports (9500+)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -139,8 +133,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-    ports:
-      - "8000:8000"
+    # ports: # Override file provides ports (9500+)
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,8 +147,7 @@ services:
     environment:
       OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vault}:${POSTGRES_PASSWORD:-vault}@postgres:5432/${POSTGRES_DB:-vault}
-    ports:
-      - "8001:8001"
+    # ports: # Override file provides ports (9500+)
     depends_on:
       postgres:
         condition: service_healthy
@@ -168,8 +160,7 @@ services:
   frontend:
     build: ../frontend
     container_name: 0711-frontend
-    ports:
-      - "3000:80"
+    # ports: # Override file provides ports (9500+)
     depends_on:
       - vault-api
     restart: unless-stopped

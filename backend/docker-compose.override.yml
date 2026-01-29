@@ -18,29 +18,29 @@ services:
   postgres:
     container_name: vault-postgres
     ports:
-      - "5440:5432"
+      - "9500:5432"
 
   redis:
     container_name: vault-redis
     ports:
-      - "6380:6379"
+      - "9501:6379"
 
   neo4j:
     container_name: vault-neo4j
     ports:
-      - "7476:7474"
-      - "7689:7687"
+      - "9502:7474"
+      - "9503:7687"
 
   minio:
     container_name: vault-minio
     ports:
-      - "4052:9000"
-      - "4053:9001"
+      - "9504:9000"
+      - "9505:9001"
 
   vault-api:
     container_name: vault-api
     ports:
-      - "8000:8000"
+      - "9506:8000"
     environment:
       OLLAMA_URL: http://host.docker.internal:11434
     extra_hosts:
@@ -49,7 +49,7 @@ services:
   ai-service:
     container_name: vault-ai-service
     ports:
-      - "8003:8000"
+      - "9507:8000"
     environment:
       OLLAMA_HOST: http://host.docker.internal:11434
     extra_hosts:
@@ -61,4 +61,4 @@ services:
   frontend:
     container_name: vault-frontend
     ports:
-      - "3000:80"
+      - "9508:80"
