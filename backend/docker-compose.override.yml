@@ -1,54 +1,53 @@
 version: '3.8'
 
-# Override to use EXISTING services on the H200
-# Instead of creating new containers
+# All services separate for Vault - unique names & ports
 
 services:
-  # Disable duplicate services - use existing ones
   postgres:
-    profiles: ["disabled"]
-  
-  redis:
-    profiles: ["disabled"]
-  
-  neo4j:
-    profiles: ["disabled"]
-  
-  ollama:
-    profiles: ["disabled"]
-  
-  minio:
-    profiles: ["disabled"]
-  
-  traefik:
-    profiles: ["disabled"]
+    container_name: vault-postgres
+    ports:
+      - "5440:5432"
 
-  # Only run the Vault-specific services
+  redis:
+    container_name: vault-redis
+    ports:
+      - "6380:6379"
+
+  neo4j:
+    container_name: vault-neo4j
+    ports:
+      - "7476:7474"
+      - "7689:7687"
+
+  ollama:
+    container_name: vault-ollama
+    ports:
+      - "11435:11434"
+
+  minio:
+    container_name: vault-minio
+    ports:
+      - "4052:9000"
+      - "4053:9001"
+
+  traefik:
+    container_name: vault-traefik
+    ports:
+      - "81:80"
+      - "444:443"
+      - "8081:8080"
+
   vault-api:
     container_name: vault-api
-    environment:
-      # Connect to existing services
-      DATABASE_URL: postgresql://vault:vault@host.docker.internal:4005/vault
-      REDIS_URL: redis://host.docker.internal:6379
-      MINIO_ENDPOINT: host.docker.internal:4050
-      OLLAMA_URL: http://host.docker.internal:11434
-      NEO4J_URI: bolt://host.docker.internal:7687
     ports:
       - "8000:8000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   ai-service:
     container_name: vault-ai-service
-    environment:
-      OLLAMA_URL: http://host.docker.internal:11434
-      DATABASE_URL: postgresql://vault:vault@host.docker.internal:4005/vault
     ports:
-      - "8001:8000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "8003:8000"
 
   frontend:
     container_name: vault-frontend
     ports:
-      - "80:80"
+      - "3000:80"
