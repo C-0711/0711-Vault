@@ -1,8 +1,9 @@
-version: '3.8'
-
 # All services separate for Vault - unique names & ports
 
 services:
+  # Disable traefik - using Cloudflare Tunnel instead
+  traefik:
+    profiles: ["disabled"]
   postgres:
     container_name: vault-postgres
     ports:
@@ -29,13 +30,6 @@ services:
     ports:
       - "4052:9000"
       - "4053:9001"
-
-  traefik:
-    container_name: vault-traefik
-    ports:
-      - "81:80"
-      - "444:443"
-      - "8081:8080"
 
   vault-api:
     container_name: vault-api
