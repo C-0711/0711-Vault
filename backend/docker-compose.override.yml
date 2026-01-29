@@ -8,6 +8,12 @@ services:
   
   ollama:
     profiles: ["disabled"]
+  
+  ollama-init:
+    profiles: ["disabled"]
+  
+  minio-init:
+    profiles: ["disabled"]
 
   postgres:
     container_name: vault-postgres
