@@ -15,6 +15,7 @@ import Documents from './pages/Documents'
 import Messages from './pages/Messages'
 import Settings from './pages/Settings'
 import Pricing from './pages/Pricing'
+import Import from './pages/Import'
 import Layout from './components/Layout'
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/import" element={<Import />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
         )}

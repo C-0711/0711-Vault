@@ -24,6 +24,13 @@ from storage import generate_upload_url, generate_download_url, delete_object
 # Stripe billing
 from stripe_routes import router as stripe_router
 
+# iMessage import (macOS only)
+try:
+    from imessage_import import router as imessage_router
+    IMESSAGE_AVAILABLE = True
+except ImportError:
+    IMESSAGE_AVAILABLE = False
+
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -88,6 +95,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(stripe_router)
+if IMESSAGE_AVAILABLE:
+    app.include_router(imessage_router)
 
 
 # ===========================================
