@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>0711 Vault – Deine Daten gehören dir. Punkt.</title>
+  <meta name="description" content="Die einzige Cloud, die deine Fotos wirklich nicht sieht. Zero-Knowledge Verschlüsselung – Made in Germany.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="0711 Vault – Deine Daten gehören dir">
+  <meta property="og:description" content="Die einzige Cloud, die deine Fotos wirklich nicht sieht. Zero-Knowledge Verschlüsselung.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://vault.0711.io/og-image.png">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="0711 Vault – Deine Daten gehören dir">
+  <meta name="twitter:description" content="Die einzige Cloud, die deine Fotos wirklich nicht sieht.">
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #000;
+      --text: #fff;
+      --muted: #666;
+      --orange: #f97316;
+      --orange-glow: rgba(249, 115, 22, 0.4);
+    }
+    
+    html { scroll-behavior: smooth; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+    
+    /* Animated Background */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .bg-glow {
+      position: fixed;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, var(--orange-glow) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 0;
+    }
+    
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      text-decoration: none;
+      color: var(--text);
+    }
+    
+    .logo span {
+      color: var(--orange);
+    }
+    
+    .nav-cta {
+      padding: 12px 28px;
+      background: var(--orange);
+      color: #000;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 100px;
+      transition: all 0.3s;
+    }
+    
+    .nav-cta:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 40px var(--orange-glow);
+    }
+    
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px;
+    }
+    
+    .hero-content {
+      max-width: 900px;
+    }
+    
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--orange);
+      margin-bottom: 32px;
+      animation: fade-in 1s ease;
+    }
+    
+    .hero h1 {
+      font-size: clamp(48px, 10vw, 96px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -4px;
+      margin-bottom: 32px;
+      animation: slide-up 1s ease;
+    }
+    
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, var(--orange) 0%, #fbbf24 50%, var(--orange) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s linear infinite;
+    }
+    
+    @keyframes shimmer {
+      to { background-position: 200% center; }
+    }
+    
+    .hero p {
+      font-size: clamp(18px, 3vw, 24px);
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+      animation: slide-up 1s ease 0.2s backwards;
+    }
+    
+    .hero-cta {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: slide-up 1s ease 0.4s backwards;
+    }
+    
+    .btn {
+      padding: 18px 40px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 100px;
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--orange);
+      color: #000;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px var(--orange-glow);
+    }
+    
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid #333;
+    }
+    
+    .btn-ghost:hover {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+    
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Stats */
+    .stats {
+      padding: 80px 0;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--orange);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    /* Problem/Solution */
+    .problem {
+      padding: 120px 0;
+    }
+    
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+    }
+    
+    .problem-side h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #ef4444;
+      margin-bottom: 24px;
+    }
+    
+    .solution-side h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #22c55e;
+      margin-bottom: 24px;
+    }
+    
+    .problem-side h3,
+    .solution-side h3 {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      letter-spacing: -1px;
+    }
+    
+    .problem-list,
+    .solution-list {
+      list-style: none;
+    }
+    
+    .problem-list li,
+    .solution-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 16px;
+      color: #999;
+    }
+    
+    .problem-list li::before {
+      content: '✕';
+      color: #ef4444;
+      font-weight: 700;
+    }
+    
+    .solution-list li::before {
+      content: '✓';
+      color: #22c55e;
+      font-weight: 700;
+    }
+    
+    /* How it works */
+    .how {
+      padding: 120px 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(249, 115, 22, 0.03) 50%, transparent 100%);
+    }
+    
+    .how h2 {
+      font-size: 48px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 80px;
+      letter-spacing: -1px;
+    }
+    
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+    }
+    
+    .how-step {
+      text-align: center;
+      padding: 40px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid #1a1a1a;
+      border-radius: 24px;
+      transition: all 0.3s;
+    }
+    
+    .how-step:hover {
+      border-color: var(--orange);
+      transform: translateY(-8px);
+    }
+    
+    .how-step-number {
+      width: 64px;
+      height: 64px;
+      background: var(--orange);
+      color: #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0 auto 24px;
+    }
+    
+    .how-step h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    
+    .how-step p {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    
+    /* Testimonials */
+    .testimonials {
+      padding: 120px 0;
+    }
+    
+    .testimonials h2 {
+      font-size: 48px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 60px;
+      letter-spacing: -1px;
+    }
+    
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    
+    .testimonial {
+      padding: 32px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid #1a1a1a;
+      border-radius: 20px;
+    }
+    
+    .testimonial-stars {
+      color: var(--orange);
+      margin-bottom: 16px;
+      letter-spacing: 4px;
+    }
+    
+    .testimonial p {
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+      color: #ccc;
+    }
+    
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--orange), #fbbf24);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    
+    .testimonial-name {
+      font-weight: 600;
+    }
+    
+    .testimonial-role {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    
+    /* Final CTA */
+    .final-cta {
+      padding: 160px 0;
+      text-align: center;
+    }
+    
+    .final-cta h2 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+    }
+    
+    .final-cta p {
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    
+    .final-cta .btn-primary {
+      font-size: 18px;
+      padding: 22px 56px;
+    }
+    
+    .guarantee {
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    
+    .guarantee span {
+      color: #22c55e;
+    }
+    
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid #1a1a1a;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+      margin: 0 16px;
+    }
+    
+    footer a:hover {
+      color: var(--text);
+    }
+    
+    /* Mobile */
+    @media (max-width: 900px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+      
+      .problem-grid {
+        grid-template-columns: 1fr;
+        gap: 60px;
+      }
+      
+      .how-steps {
+        grid-template-columns: 1fr;
+      }
+      
+      .testimonial-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stat-number {
+        font-size: 40px;
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .hero h1 {
+        letter-spacing: -2px;
+      }
+      
+      .hero-cta {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">0711 <span>Vault</span></a>
+      <a href="/register" class="nav-cta">Jetzt starten</a>
+    </div>
+  </nav>
+  
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        🇩🇪 Made in Germany • Zero-Knowledge
+      </div>
+      <h1>
+        Deine Daten.<br>
+        <span class="highlight">Wirklich deine.</span>
+      </h1>
+      <p>
+        Die einzige Cloud, die deine Fotos nicht sehen kann. Nicht wir, nicht Hacker, nicht Behörden. Verschlüsselung, die diesen Namen verdient.
+      </p>
+      <div class="hero-cta">
+        <a href="/register" class="btn btn-primary">Kostenlos starten →</a>
+        <a href="#how" class="btn btn-ghost">So funktioniert's</a>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Stats -->
+  <section class="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Datenlecks möglich</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">256</div>
+          <div class="stat-label">Bit Verschlüsselung</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Lokal verarbeitet</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">∞</div>
+          <div class="stat-label">Dein Eigentum</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Problem / Solution -->
+  <section class="problem">
+    <div class="container">
+      <div class="problem-grid">
+        <div class="problem-side">
+          <h2>❌ Das Problem</h2>
+          <h3>Jede Cloud kann deine Daten sehen</h3>
+          <ul class="problem-list">
+            <li>Google, Apple, Dropbox – alle scannen deine Fotos</li>
+            <li>Behörden können jederzeit Zugriff verlangen</li>
+            <li>Bei Hacks sind ALLE deine Daten exponiert</li>
+            <li>KI-Training mit deinen privaten Momenten</li>
+            <li>Keine echte Kontrolle über deine Daten</li>
+          </ul>
+        </div>
+        <div class="solution-side">
+          <h2>✓ Die Lösung</h2>
+          <h3>Verschlüsselung vor dem Upload</h3>
+          <ul class="solution-list">
+            <li>Daten werden auf deinem Gerät verschlüsselt</li>
+            <li>Der Schlüssel verlässt nie dein Gerät</li>
+            <li>Selbst wir können nichts entschlüsseln</li>
+            <li>KI läuft lokal – 100% privat</li>
+            <li>Open Source – du kannst es prüfen</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- How it works -->
+  <section class="how" id="how">
+    <div class="container">
+      <h2>So einfach geht's</h2>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-step-number">1</div>
+          <h3>Account erstellen</h3>
+          <p>Wähle ein starkes Passwort. Daraus wird dein persönlicher Verschlüsselungsschlüssel abgeleitet – den nur du kennst.</p>
+        </div>
+        <div class="how-step">
+          <div class="how-step-number">2</div>
+          <h3>Fotos & Docs hochladen</h3>
+          <p>Alles wird automatisch auf deinem Gerät verschlüsselt, bevor es in die Cloud geht. Wir sehen nur unlesbaren Datensalat.</p>
+        </div>
+        <div class="how-step">
+          <div class="how-step-number">3</div>
+          <h3>Intelligent suchen</h3>
+          <p>Die KI läuft auf deinem Gerät. Finde Fotos von Personen oder durchsuche Dokumente – komplett privat.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Testimonials -->
+  <section class="testimonials">
+    <div class="container">
+      <h2>Was Nutzer sagen</h2>
+      <div class="testimonial-grid">
+        <div class="testimonial">
+          <div class="testimonial-stars">★★★★★</div>
+          <p>"Endlich eine Cloud, bei der ich wirklich ruhig schlafen kann. Meine Familienfotos gehören mir – nicht irgendeinem Tech-Konzern."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">M</div>
+            <div>
+              <div class="testimonial-name">Michael K.</div>
+              <div class="testimonial-role">Familienvater, Stuttgart</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial-stars">★★★★★</div>
+          <p>"Als Ärztin muss ich Patientendaten schützen. Mit 0711 Vault kann ich Dokumente sicher speichern – DSGVO-konform und ohne Kompromisse."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">S</div>
+            <div>
+              <div class="testimonial-name">Dr. Sarah L.</div>
+              <div class="testimonial-role">Ärztin, München</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial-stars">★★★★★</div>
+          <p>"Die lokale Gesichtserkennung ist genial. Ich finde alle Fotos meiner Kinder – und die KI hat sie nie 'gesehen'. Datenschutz wie er sein sollte."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">T</div>
+            <div>
+              <div class="testimonial-name">Thomas R.</div>
+              <div class="testimonial-role">Software-Entwickler, Berlin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Final CTA -->
+  <section class="final-cta">
+    <div class="container">
+      <h2>Bereit für echte Privatsphäre?</h2>
+      <p>5 GB kostenlos. Keine Kreditkarte. Jederzeit kündbar.</p>
+      <a href="/register" class="btn btn-primary">Jetzt kostenlos starten →</a>
+      <div class="guarantee">
+        <span>✓</span> 30 Tage Geld-zurück-Garantie bei Pro & Family
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>
+        <a href="/privacy">Datenschutz</a>
+        <a href="/terms">AGB</a>
+        <a href="/imprint">Impressum</a>
+      </p>
+      <p style="margin-top: 16px;">© 2025 0711 Vault · Made with 🔐 in Stuttgart</p>
+    </div>
+  </footer>
+</body>
+</html>
