@@ -31,6 +31,9 @@ try:
 except ImportError:
     IMESSAGE_AVAILABLE = False
 
+# Calendar
+from calendar_routes import router as calendar_router
+
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -95,6 +98,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(stripe_router)
+app.include_router(calendar_router)
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
 

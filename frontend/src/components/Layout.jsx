@@ -104,6 +104,9 @@ export default function Layout() {
             <SidebarLink to="/messages" icon="💬">
               Messages
             </SidebarLink>
+            <SidebarLink to="/calendar" icon="📅">
+              Kalender
+            </SidebarLink>
             <SidebarLink to="/import" icon="📥">
               Import
             </SidebarLink>
