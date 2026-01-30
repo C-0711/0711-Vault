@@ -1,6 +1,6 @@
-# 🚀 SUPERPOWER TASK LIST - 0711 Intelligence
+# 🚀 SUPERPOWER TASK LIST - 0711 Vault
 
-**Goal:** Take 0711-Intelligence to production-ready superpower level
+**Goal:** Take 0711-Vault to production-ready superpower level
 
 ---
 
@@ -19,7 +19,7 @@ nohup ./cloudflared tunnel run > ~/cloudflared.log 2>&1 &
 ### 1.2 Deploy Landing Page (website/)
 ```bash
 # Create nginx container for landing page
-cd ~/0711-Intelligence/0711-Intelligence
+cd ~/0711-Vault/0711-Vault
 
 # Create website docker-compose
 cat > website/docker-compose.yml << 'EOF'
@@ -49,7 +49,7 @@ cd website && docker compose up -d
 ### 2.1 Connect to Host Ollama
 Update `.env` in backend:
 ```bash
-cd ~/0711-Intelligence/0711-Intelligence/backend
+cd ~/0711-Vault/0711-Vault/backend
 echo "OLLAMA_HOST=http://172.17.0.1:11434" >> .env
 docker compose up -d vault-api ai-service
 ```
@@ -84,7 +84,7 @@ CREATE INDEX person_name IF NOT EXISTS FOR (p:Person) ON (p.name);
 
 ### 3.1 Update Frontend API URL
 ```bash
-cd ~/0711-Intelligence/0711-Intelligence/frontend
+cd ~/0711-Vault/0711-Vault/frontend
 sed -i 's|http://localhost:8000|https://api.vault.0711.io|g' src/config.ts || true
 npm run build
 docker compose up -d --build frontend
@@ -102,7 +102,7 @@ Update backend CORS settings:
 
 ### 4.1 Generate Production Secrets
 ```bash
-cd ~/0711-Intelligence/0711-Intelligence/backend
+cd ~/0711-Vault/0711-Vault/backend
 
 # Generate secure JWT secret
 JWT_SECRET=$(openssl rand -hex 32)
@@ -124,7 +124,7 @@ All traffic goes through Cloudflare Tunnel = automatic HTTPS ✅
 ```bash
 cat > ~/0711-health-check.sh << 'EOF'
 #!/bin/bash
-echo "=== 0711 Intelligence Health Check ==="
+echo "=== 0711 Vault Health Check ==="
 echo ""
 echo "Services:"
 curl -s http://localhost:9506/health | jq .

@@ -1,4 +1,4 @@
-# 0711 Intelligence - Personal AI Vault
+# 0711 Vault - Personal AI Vault
 
 🔐 **Your memories, your AI, your control.**
 
@@ -25,7 +25,7 @@ A privacy-first personal photo & document vault with on-device AI for intelligen
 ## Project Structure
 
 ```
-0711-Intelligence/
+0711-Vault/
 ├── Vault0711/          # iOS App (SwiftUI)
 ├── backend/            # API Server (FastAPI + PostgreSQL)
 ├── frontend/           # Web Dashboard (React)
