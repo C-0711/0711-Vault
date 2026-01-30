@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,55 +7,121 @@ import {
   TouchableOpacity,
   useColorScheme,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, fonts } from '../theme';
+import api from '../services/api';
+import { getMasterKey } from '../services/crypto';
 
 interface VaultItem {
   id: string;
   title: string;
-  type: 'document' | 'note' | 'image' | 'audio';
+  type: 'document' | 'photo' | 'video';
   category: string;
   date: Date;
   size?: string;
+  file_size?: number;
+  item_type?: string;
+  encrypted_metadata?: string;
+  created_at?: string;
 }
 
-const mockVaultItems: VaultItem[] = [
-  { id: '1', title: 'Steuerbescheid 2023', type: 'document', category: 'Finanzen', date: new Date('2024-03-15'), size: '2.4 MB' },
-  { id: '2', title: 'Meeting Notes Q1', type: 'note', category: 'Arbeit', date: new Date('2024-03-10') },
-  { id: '3', title: 'Versicherungspolice', type: 'document', category: 'Versicherungen', date: new Date('2024-02-20'), size: '1.8 MB' },
-  { id: '4', title: 'Produktideen 2024', type: 'note', category: 'Ideen', date: new Date('2024-03-01') },
-  { id: '5', title: 'Reisefotos Portugal', type: 'image', category: 'Persönlich', date: new Date('2024-01-15'), size: '45 MB' },
-  { id: '6', title: 'Voice Memo - Interview', type: 'audio', category: 'Arbeit', date: new Date('2024-03-12'), size: '12 MB' },
-];
-
-const categories = ['Alle', 'Finanzen', 'Arbeit', 'Versicherungen', 'Ideen', 'Persönlich'];
+const categories = ['Alle', 'Fotos', 'Dokumente', 'Videos'];
 
 export default function VaultScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   
+  const [items, setItems] = useState<VaultItem[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState('Alle');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    loadData();
+  }, []);
+  
+  async function loadData() {
+    try {
+      const [itemsResponse, statsResponse] = await Promise.all([
+        api.getItems(null, 100),
+        api.getStats().catch(() => null),
+      ]);
+      
+      // Transform items
+      const transformedItems = (itemsResponse.items || []).map((item: any) => ({
+        id: item.id,
+        title: item.encrypted_metadata ? '•••••' : getDefaultTitle(item.item_type),
+        type: item.item_type,
+        category: getCategoryFromType(item.item_type),
+        date: new Date(item.created_at),
+        size: formatFileSize(item.file_size),
+        file_size: item.file_size,
+      }));
+      
+      setItems(transformedItems);
+      setStats(statsResponse);
+    } catch (err) {
+      console.error('Failed to load vault data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  function getDefaultTitle(type: string): string {
+    switch (type) {
+      case 'photo': return 'Foto';
+      case 'document': return 'Dokument';
+      case 'video': return 'Video';
+      default: return 'Datei';
+    }
+  }
+  
+  function getCategoryFromType(type: string): string {
+    switch (type) {
+      case 'photo': return 'Fotos';
+      case 'document': return 'Dokumente';
+      case 'video': return 'Videos';
+      default: return 'Sonstige';
+    }
+  }
+  
+  function formatFileSize(bytes: number): string {
+    if (!bytes) return '';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
   
   const filteredItems = selectedCategory === 'Alle' 
-    ? mockVaultItems 
-    : mockVaultItems.filter(item => item.category === selectedCategory);
+    ? items 
+    : items.filter(item => item.category === selectedCategory);
   
   const getIcon = (type: string): keyof typeof Ionicons.glyphMap => {
     switch (type) {
       case 'document': return 'document-text';
-      case 'note': return 'create';
-      case 'image': return 'image';
-      case 'audio': return 'mic';
+      case 'photo': return 'image';
+      case 'video': return 'videocam';
       default: return 'document';
     }
   };
   
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await loadData();
+    setRefreshing(false);
   };
+  
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: isDark ? colors.darkBg : colors.light }]}>
+        <ActivityIndicator size="large" color={colors.orange} />
+      </View>
+    );
+  }
   
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.darkBg : colors.light }]}>
@@ -98,21 +164,21 @@ export default function VaultScreen() {
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: isDark ? colors.darkCard : '#fff' }]}>
           <Text style={[styles.statNumber, { color: isDark ? colors.darkText : colors.dark }]}>
-            {mockVaultItems.length}
+            {stats?.photos || 0}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.midGray }]}>Fotos</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: isDark ? colors.darkCard : '#fff' }]}>
+          <Text style={[styles.statNumber, { color: isDark ? colors.darkText : colors.dark }]}>
+            {stats?.documents || 0}
           </Text>
           <Text style={[styles.statLabel, { color: colors.midGray }]}>Dokumente</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: isDark ? colors.darkCard : '#fff' }]}>
           <Text style={[styles.statNumber, { color: isDark ? colors.darkText : colors.dark }]}>
-            {categories.length - 1}
+            {stats?.total_gb?.toFixed(1) || 0} GB
           </Text>
-          <Text style={[styles.statLabel, { color: colors.midGray }]}>Kategorien</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: isDark ? colors.darkCard : '#fff' }]}>
-          <Text style={[styles.statNumber, { color: isDark ? colors.darkText : colors.dark }]}>
-            61 MB
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.midGray }]}>Gesamt</Text>
+          <Text style={[styles.statLabel, { color: colors.midGray }]}>Speicher</Text>
         </View>
       </View>
       
@@ -124,35 +190,47 @@ export default function VaultScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.orange} />
         }
       >
-        {filteredItems.map(item => (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.itemCard, { backgroundColor: isDark ? colors.darkCard : '#fff' }]}
-          >
-            <View style={[styles.itemIcon, { backgroundColor: colors.orange + '15' }]}>
-              <Ionicons name={getIcon(item.type)} size={24} color={colors.orange} />
-            </View>
-            <View style={styles.itemContent}>
-              <Text style={[styles.itemTitle, { color: isDark ? colors.darkText : colors.dark }]}>
-                {item.title}
-              </Text>
-              <View style={styles.itemMeta}>
-                <Text style={[styles.itemCategory, { color: colors.midGray }]}>
-                  {item.category}
-                </Text>
-                <Text style={[styles.itemDate, { color: colors.midGray }]}>
-                  {item.date.toLocaleDateString('de-DE')}
-                </Text>
-                {item.size && (
-                  <Text style={[styles.itemSize, { color: colors.midGray }]}>
-                    {item.size}
-                  </Text>
-                )}
+        {filteredItems.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="folder-open-outline" size={64} color={colors.midGray} />
+            <Text style={[styles.emptyText, { color: colors.midGray }]}>
+              Keine Einträge gefunden
+            </Text>
+            <Text style={[styles.emptySubtext, { color: colors.midGray }]}>
+              Lade Fotos oder Dokumente hoch, um loszulegen
+            </Text>
+          </View>
+        ) : (
+          filteredItems.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.itemCard, { backgroundColor: isDark ? colors.darkCard : '#fff' }]}
+            >
+              <View style={[styles.itemIcon, { backgroundColor: colors.orange + '15' }]}>
+                <Ionicons name={getIcon(item.type)} size={24} color={colors.orange} />
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.midGray} />
-          </TouchableOpacity>
-        ))}
+              <View style={styles.itemContent}>
+                <Text style={[styles.itemTitle, { color: isDark ? colors.darkText : colors.dark }]}>
+                  {item.title}
+                </Text>
+                <View style={styles.itemMeta}>
+                  <Text style={[styles.itemCategory, { color: colors.midGray }]}>
+                    {item.category}
+                  </Text>
+                  <Text style={[styles.itemDate, { color: colors.midGray }]}>
+                    {item.date.toLocaleDateString('de-DE')}
+                  </Text>
+                  {item.size && (
+                    <Text style={[styles.itemSize, { color: colors.midGray }]}>
+                      {item.size}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.midGray} />
+            </TouchableOpacity>
+          ))
+        )}
         
         {/* Add Button */}
         <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.orange }]}>
@@ -169,6 +247,10 @@ export default function VaultScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -222,6 +304,20 @@ const styles = StyleSheet.create({
   itemsList: {
     flex: 1,
     paddingHorizontal: spacing.md,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  emptyText: {
+    fontSize: fonts.sizes.lg,
+    fontWeight: '600',
+    marginTop: spacing.md,
+  },
+  emptySubtext: {
+    fontSize: fonts.sizes.sm,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   itemCard: {
     flexDirection: 'row',

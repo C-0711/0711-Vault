@@ -1,219 +1,192 @@
-import { useState } from 'react'
-import { Search, Plus, Phone, Video, MoreVertical, Send, Image, Paperclip, Smile, Check, CheckCheck, Lock } from 'lucide-react'
-import clsx from 'clsx'
-
-const contacts = [
-  { id: 1, name: 'Alex M.', lastMessage: 'Klingt gut, bis morgen!', time: '14:32', unread: 2, online: true },
-  { id: 2, name: 'Sarah K.', lastMessage: 'Danke für die Dokumente 📄', time: '12:15', unread: 0, online: false },
-  { id: 3, name: 'Familie', lastMessage: 'Mama: Wann kommst du?', time: 'gestern', unread: 5, online: true, isGroup: true },
-  { id: 4, name: 'Tim W.', lastMessage: 'Die Fotos sind super!', time: 'gestern', unread: 0, online: false },
-  { id: 5, name: 'Dr. Schmidt', lastMessage: 'Termin bestätigt', time: 'Mo', unread: 0, online: false },
-]
-
-const messages = [
-  { id: 1, sender: 'other', text: 'Hey! Hast du die Fotos vom Wochenende?', time: '14:20' },
-  { id: 2, sender: 'me', text: 'Ja, sind im Vault gesichert! Schick dir gleich ein paar.', time: '14:22', status: 'read' },
-  { id: 3, sender: 'other', text: 'Super, danke! 🙌', time: '14:25' },
-  { id: 4, sender: 'me', text: 'Hier sind sie:', time: '14:28', status: 'read' },
-  { id: 5, sender: 'me', type: 'image', time: '14:28', status: 'read' },
-  { id: 6, sender: 'other', text: 'Die sind richtig gut geworden!', time: '14:30' },
-  { id: 7, sender: 'me', text: 'Klingt gut, bis morgen!', time: '14:32', status: 'delivered' },
-]
+import { useState, useRef, useEffect } from 'react'
+import api from '../lib/api'
 
 export default function Messages() {
-  const [selectedChat, setSelectedChat] = useState(contacts[0])
-  const [newMessage, setNewMessage] = useState('')
-  const [showChatList, setShowChatList] = useState(true)
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      role: 'assistant',
+      content: 'Hallo! Ich bin dein Vault AI Assistent. Ich kann dir helfen, Informationen in deinem Vault zu finden. Frag mich zum Beispiel:\n\n• "Zeig mir Fotos vom letzten Sommer"\n• "Finde Dokumente mit Rechnungen"\n• "Wer ist auf meinen Fotos?"',
+      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    }
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const messagesEndRef = useRef(null)
 
-  const handleSend = (e) => {
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  async function handleSend(e) {
     e.preventDefault()
-    if (!newMessage.trim()) return
-    // Send message logic here
-    setNewMessage('')
+    if (!input.trim() || loading) return
+
+    const userMessage = {
+      id: Date.now(),
+      role: 'user',
+      content: input.trim(),
+      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
+    setLoading(true)
+
+    try {
+      // Search in vault using semantic search
+      const searchResults = await api.semanticSearch(userMessage.content, 10)
+      
+      let responseContent = ''
+      
+      if (searchResults.results && searchResults.results.length > 0) {
+        responseContent = `Ich habe ${searchResults.results.length} relevante Einträge in deinem Vault gefunden:\n\n`
+        
+        const photos = searchResults.results.filter(r => r.item_type === 'photo')
+        const docs = searchResults.results.filter(r => r.item_type === 'document')
+        
+        if (photos.length > 0) {
+          responseContent += `📷 **${photos.length} Fotos**\n`
+          photos.slice(0, 3).forEach((p, i) => {
+            responseContent += `  ${i + 1}. Ähnlichkeit: ${Math.round((p.similarity || 0) * 100)}%\n`
+          })
+          responseContent += '\n'
+        }
+        
+        if (docs.length > 0) {
+          responseContent += `📄 **${docs.length} Dokumente**\n`
+          docs.slice(0, 3).forEach((d, i) => {
+            responseContent += `  ${i + 1}. Ähnlichkeit: ${Math.round((d.similarity || 0) * 100)}%\n`
+          })
+          responseContent += '\n'
+        }
+        
+        responseContent += 'Gehe zu **Fotos** oder **Dokumente** um die Ergebnisse zu sehen.'
+      } else {
+        responseContent = 'Ich konnte leider keine passenden Einträge in deinem Vault finden. Versuche eine andere Suchanfrage oder lade mehr Inhalte hoch.'
+      }
+
+      const assistantMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: responseContent,
+        time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (err) {
+      console.error('Search failed:', err)
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: 'Entschuldigung, es gab einen Fehler bei der Suche. Bitte versuche es erneut.',
+        time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      }])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)] flex animate-fade-in">
-      {/* Chat List */}
-      <div className={clsx(
-        'w-full md:w-80 flex-shrink-0 border-r border-white/10 flex flex-col',
-        !showChatList && 'hidden md:flex'
-      )}>
-        {/* Header */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold">Nachrichten</h1>
-            <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Suchen..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-white/20"
-            />
-          </div>
+    <div className="flex flex-col h-[calc(100vh-12rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Vault AI</h1>
+          <p className="text-zinc-400">Frag mich alles über deinen Vault</p>
         </div>
-
-        {/* Contacts */}
-        <div className="flex-1 overflow-y-auto">
-          {contacts.map(contact => (
-            <button
-              key={contact.id}
-              onClick={() => { setSelectedChat(contact); setShowChatList(false); }}
-              className={clsx(
-                'w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left',
-                selectedChat?.id === contact.id && 'bg-white/5'
-              )}
-            >
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                  {contact.name.charAt(0)}
-                </div>
-                {contact.online && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium truncate">{contact.name}</p>
-                  <span className="text-xs text-gray-500">{contact.time}</span>
-                </div>
-                <p className="text-sm text-gray-500 truncate">{contact.lastMessage}</p>
-              </div>
-              {contact.unread > 0 && (
-                <span className="w-5 h-5 bg-green-500 rounded-full text-xs flex items-center justify-center text-black font-medium">
-                  {contact.unread}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          <span className="text-zinc-400 text-sm">Online</span>
         </div>
       </div>
 
-      {/* Chat View */}
-      <div className={clsx(
-        'flex-1 flex flex-col',
-        showChatList && 'hidden md:flex'
-      )}>
-        {selectedChat ? (
-          <>
-            {/* Chat Header */}
-            <div className="flex items-center gap-4 p-4 border-b border-white/10">
-              <button 
-                onClick={() => setShowChatList(true)}
-                className="md:hidden p-2 -ml-2 hover:bg-white/10 rounded-lg"
-              >
-                ←
-              </button>
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                {selectedChat.name.charAt(0)}
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto py-4 space-y-4">
+        {messages.map(message => (
+          <div
+            key={message.id}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                message.role === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-800 text-white'
+              }`}
+            >
+              <div className="whitespace-pre-wrap">{message.content}</div>
+              <div className={`text-xs mt-1 ${
+                message.role === 'user' ? 'text-blue-200' : 'text-zinc-500'
+              }`}>
+                {message.time}
               </div>
-              <div className="flex-1">
-                <p className="font-medium">{selectedChat.name}</p>
-                <p className="text-xs text-gray-500">
-                  {selectedChat.online ? 'Online' : 'Zuletzt online vor 2h'}
-                </p>
-              </div>
+            </div>
+          </div>
+        ))}
+        
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-zinc-800 rounded-2xl px-4 py-3">
               <div className="flex gap-1">
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <Phone className="w-5 h-5 text-gray-400" />
-                </button>
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <Video className="w-5 h-5 text-gray-400" />
-                </button>
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <MoreVertical className="w-5 h-5 text-gray-400" />
-                </button>
+                <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* E2E Notice */}
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 py-2">
-                <Lock className="w-3 h-3" />
-                Ende-zu-Ende verschlüsselt
-              </div>
-              
-              {messages.map(msg => (
-                <div
-                  key={msg.id}
-                  className={clsx(
-                    'flex',
-                    msg.sender === 'me' ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  <div className={clsx(
-                    'max-w-[75%] rounded-2xl px-4 py-2',
-                    msg.sender === 'me' 
-                      ? 'bg-green-500 text-black rounded-br-md' 
-                      : 'bg-white/10 rounded-bl-md'
-                  )}>
-                    {msg.type === 'image' ? (
-                      <div className="w-48 h-32 bg-black/20 rounded-lg flex items-center justify-center">
-                        <Image className="w-8 h-8 opacity-50" />
-                      </div>
-                    ) : (
-                      <p>{msg.text}</p>
-                    )}
-                    <div className={clsx(
-                      'flex items-center gap-1 mt-1',
-                      msg.sender === 'me' ? 'justify-end' : 'justify-start'
-                    )}>
-                      <span className={clsx(
-                        'text-xs',
-                        msg.sender === 'me' ? 'text-black/60' : 'text-gray-500'
-                      )}>
-                        {msg.time}
-                      </span>
-                      {msg.sender === 'me' && (
-                        msg.status === 'read' 
-                          ? <CheckCheck className="w-4 h-4 text-black/60" />
-                          : <Check className="w-4 h-4 text-black/60" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Input */}
-            <form onSubmit={handleSend} className="p-4 border-t border-white/10">
-              <div className="flex items-center gap-2">
-                <button type="button" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <Paperclip className="w-5 h-5 text-gray-400" />
-                </button>
-                <button type="button" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <Image className="w-5 h-5 text-gray-400" />
-                </button>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Nachricht..."
-                  className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 focus:outline-none focus:border-white/20"
-                />
-                <button type="button" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <Smile className="w-5 h-5 text-gray-400" />
-                </button>
-                <button 
-                  type="submit"
-                  className="p-2 bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
-                >
-                  <Send className="w-5 h-5 text-black" />
-                </button>
-              </div>
-            </form>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <p>Wähle einen Chat aus</p>
           </div>
         )}
+        
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Input */}
+      <form onSubmit={handleSend} className="pt-4 border-t border-zinc-800">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Nachricht eingeben..."
+            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
+            disabled={loading}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || loading}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Quick Actions */}
+        <div className="flex gap-2 mt-3">
+          <QuickAction onClick={() => setInput('Zeig mir meine neuesten Fotos')}>
+            📷 Neueste Fotos
+          </QuickAction>
+          <QuickAction onClick={() => setInput('Finde Rechnungen')}>
+            📄 Rechnungen
+          </QuickAction>
+          <QuickAction onClick={() => setInput('Wer ist auf meinen Fotos?')}>
+            👤 Personen
+          </QuickAction>
+        </div>
+      </form>
     </div>
+  )
+}
+
+function QuickAction({ children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-xs bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full hover:bg-zinc-700 hover:text-white transition"
+    >
+      {children}
+    </button>
   )
 }
