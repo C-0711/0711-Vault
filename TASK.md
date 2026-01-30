@@ -1,29 +1,56 @@
-# TASK for Claude Code (H200)
+# TASK: Finish Vault 0711 Deployment
 
-## Protocol
-1. Pull this repo to get tasks
-2. Execute the task
-3. Write results to `STATUS.md`
-4. Push: `git add -A && git commit -m "Status update" && git push`
+## 1. Update Cloudflare Tunnel Config
 
----
+Edit `~/.cloudflared/config.yml` and update the vault entries to use new ports:
 
-## Current Task
-✅ COMPLETED - Vault deployment on ports 9500+
-
-Run:
-```bash
-docker ps | grep vault
+```yaml
+  # Vault (new ports)
+  - hostname: vault.0711.io
+    service: http://localhost:9508
+  - hostname: api.vault.0711.io
+    service: http://localhost:9506
+  - hostname: app.vault.0711.io
+    service: http://localhost:9508
 ```
 
-And report what containers are running (or any errors).
+Then restart the tunnel (find the running cloudflared process and restart it).
 
-## Deployment Configuration (see CLAUDE.md for rules)
-- **Port Range**: 9500-9599
-- **Ollama**: Using host Ollama on port 11434
-- **Traefik**: Disabled (using Cloudflare Tunnel)
+## 2. Fix MediaPipe Issue in ai-service
 
-## Critical Rules
-- NEVER modify or stop existing containers
-- NEVER touch existing data
-- All deployments use port 9500+
+Edit `~/0711-Intelligence/0711-Intelligence/backend/services/ai-service/requirements.txt`:
+- Pin mediapipe: `mediapipe==0.10.9`
+
+Then rebuild:
+```bash
+cd ~/0711-Intelligence/0711-Intelligence/backend
+docker compose build ai-service
+docker compose up -d ai-service
+```
+
+## 3. Test Endpoints
+
+```bash
+# Test API health
+curl http://localhost:9506/health
+
+# Test frontend
+curl -I http://localhost:9508
+
+# Test from outside (after tunnel restart)
+curl https://vault.0711.io
+curl https://api.vault.0711.io/health
+```
+
+## 4. Report Results
+
+Update STATUS.md with:
+- Cloudflare tunnel status
+- ai-service fix result
+- Endpoint test results
+- Public URLs working or not
+
+Then push:
+```bash
+git add -A && git commit -m "Vault deployment complete" && git push
+```
