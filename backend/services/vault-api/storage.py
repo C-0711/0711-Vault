@@ -10,6 +10,7 @@ from minio.error import S3Error
 
 # Configuration
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+MINIO_EXTERNAL_ENDPOINT = os.getenv("MINIO_EXTERNAL_ENDPOINT", "localhost:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
@@ -20,7 +21,7 @@ minio_client = None
 
 
 def get_minio_client() -> Minio:
-    """Get or create MinIO client."""
+    """Get or create MinIO client (internal, for operations)."""
     global minio_client
     if minio_client is None:
         minio_client = Minio(
@@ -58,6 +59,7 @@ def generate_upload_url(
     if file_ext:
         storage_key += f".{file_ext}"
     
+    # Use internal client to generate URL and ensure bucket exists
     client = get_minio_client()
     
     # Generate presigned PUT URL
@@ -66,6 +68,11 @@ def generate_upload_url(
         storage_key,
         expires=expires
     )
+    
+    # Replace internal hostname with external one for browser access
+    if MINIO_ENDPOINT != MINIO_EXTERNAL_ENDPOINT:
+        url = url.replace(f"http://{MINIO_ENDPOINT}", f"http://{MINIO_EXTERNAL_ENDPOINT}")
+        url = url.replace(f"https://{MINIO_ENDPOINT}", f"https://{MINIO_EXTERNAL_ENDPOINT}")
     
     return url, storage_key
 
@@ -86,7 +93,6 @@ def generate_download_url(
     Returns:
         Presigned download URL
     """
-    from minio.commonconfig import CopySource
     from urllib.parse import urlencode
     
     client = get_minio_client()
@@ -102,6 +108,11 @@ def generate_download_url(
         expires=expires,
         response_headers=response_headers if response_headers else None
     )
+    
+    # Replace internal hostname with external one for browser access
+    if MINIO_ENDPOINT != MINIO_EXTERNAL_ENDPOINT:
+        url = url.replace(f"http://{MINIO_ENDPOINT}", f"http://{MINIO_EXTERNAL_ENDPOINT}")
+        url = url.replace(f"https://{MINIO_ENDPOINT}", f"https://{MINIO_EXTERNAL_ENDPOINT}")
     
     return url
 
