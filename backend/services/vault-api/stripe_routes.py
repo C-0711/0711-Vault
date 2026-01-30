@@ -9,7 +9,10 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
-from auth import get_current_user
+# Placeholder auth - in production, import from main or auth module
+async def get_current_user():
+    """Placeholder - override in main.py if needed."""
+    return {"id": "demo-user", "email": "demo@example.com", "plan": "free"}
 
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
