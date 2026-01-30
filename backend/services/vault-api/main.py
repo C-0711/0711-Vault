@@ -21,6 +21,9 @@ import uuid
 # Storage service
 from storage import generate_upload_url, generate_download_url, delete_object
 
+# Stripe billing
+from stripe_routes import router as stripe_router
+
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -82,6 +85,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(stripe_router)
 
 
 # ===========================================

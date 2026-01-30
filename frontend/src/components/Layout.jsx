@@ -104,6 +104,9 @@ export default function Layout() {
             <SidebarLink to="/messages" icon="💬">
               Messages
             </SidebarLink>
+            <SidebarLink to="/pricing" icon="💎">
+              Upgrade
+            </SidebarLink>
             <SidebarLink to="/settings" icon="⚙️">
               Settings
             </SidebarLink>

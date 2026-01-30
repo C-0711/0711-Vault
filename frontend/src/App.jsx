@@ -14,6 +14,7 @@ import Photos from './pages/Photos'
 import Documents from './pages/Documents'
 import Messages from './pages/Messages'
 import Settings from './pages/Settings'
+import Pricing from './pages/Pricing'
 import Layout from './components/Layout'
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
             <Route path="/documents" element={<Documents />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
         )}
