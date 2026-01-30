@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datenschutz – 0711 Vault</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #09090b;
+      color: #fafafa;
+      font-family: 'Inter', sans-serif;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+    h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -1px;
+    }
+    .updated {
+      color: #a1a1aa;
+      margin-bottom: 48px;
+    }
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 48px 0 16px;
+      color: #f97316;
+    }
+    p, li {
+      color: #d4d4d8;
+      margin-bottom: 16px;
+    }
+    ul {
+      padding-left: 24px;
+      margin-bottom: 24px;
+    }
+    a {
+      color: #f97316;
+    }
+    .back {
+      display: inline-block;
+      margin-bottom: 32px;
+      color: #a1a1aa;
+      text-decoration: none;
+    }
+    .back:hover {
+      color: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back">← Zurück zur Startseite</a>
+    
+    <h1>Datenschutzerklärung</h1>
+    <p class="updated">Letzte Aktualisierung: Januar 2025</p>
+    
+    <h2>1. Zero-Knowledge Prinzip</h2>
+    <p>0711 Vault ist nach dem Zero-Knowledge Prinzip aufgebaut. Das bedeutet:</p>
+    <ul>
+      <li>Alle deine Daten werden auf deinem Gerät verschlüsselt, bevor sie hochgeladen werden</li>
+      <li>Der Verschlüsselungsschlüssel wird aus deinem Passwort abgeleitet und verlässt niemals dein Gerät</li>
+      <li>Wir können deine Daten nicht lesen – selbst wenn wir wollten oder gezwungen würden</li>
+      <li>Es gibt keine Master-Keys oder Hintertüren</li>
+    </ul>
+    
+    <h2>2. Welche Daten wir speichern</h2>
+    <p>Wir speichern nur das absolute Minimum:</p>
+    <ul>
+      <li><strong>Account-Daten:</strong> E-Mail-Adresse (zur Authentifizierung und Kontowiederherstellung)</li>
+      <li><strong>Verschlüsselte Blobs:</strong> Deine hochgeladenen Dateien – für uns unlesbar</li>
+      <li><strong>Metadaten:</strong> Dateigröße, Upload-Zeitpunkt, Speicherverbrauch</li>
+      <li><strong>Technische Logs:</strong> Anonymisierte Fehlerberichte zur Verbesserung des Dienstes</li>
+    </ul>
+    
+    <h2>3. Was wir NICHT speichern</h2>
+    <ul>
+      <li>Dein Passwort (nur ein Hash davon)</li>
+      <li>Deinen Verschlüsselungsschlüssel</li>
+      <li>Unverschlüsselte Versionen deiner Dateien</li>
+      <li>Tracking-Daten oder Werbeprofile</li>
+    </ul>
+    
+    <h2>4. KI-Verarbeitung</h2>
+    <p>Die Gesichtserkennung und andere KI-Features laufen lokal auf deinem Gerät:</p>
+    <ul>
+      <li>Keine Bilder werden zur Analyse an Server gesendet</li>
+      <li>Erkannte Gesichter werden als verschlüsselte Embeddings gespeichert</li>
+      <li>Die Suche funktioniert über verschlüsselte Vektoren – wir sehen den Inhalt nie</li>
+    </ul>
+    
+    <h2>5. Datenübertragung</h2>
+    <ul>
+      <li>Alle Verbindungen sind TLS-verschlüsselt (HTTPS)</li>
+      <li>Server stehen in Deutschland (DSGVO-konform)</li>
+      <li>Keine Datenübertragung an Dritte</li>
+    </ul>
+    
+    <h2>6. Deine Rechte</h2>
+    <p>Nach DSGVO hast du folgende Rechte:</p>
+    <ul>
+      <li><strong>Auskunft:</strong> Welche Daten wir über dich haben</li>
+      <li><strong>Löschung:</strong> Account und alle Daten löschen</li>
+      <li><strong>Export:</strong> Deine verschlüsselten Daten herunterladen</li>
+      <li><strong>Widerspruch:</strong> Der Verarbeitung widersprechen</li>
+    </ul>
+    
+    <h2>7. Kontakt</h2>
+    <p>Bei Fragen zum Datenschutz erreichst du uns unter:<br>
+    <a href="mailto:privacy@vault.0711.io">privacy@vault.0711.io</a></p>
+  </div>
+</body>
+</html>
