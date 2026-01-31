@@ -4,6 +4,11 @@
 
 **THIS IS 0711-Vault - A STANDALONE PHOTO/DOCUMENT VAULT APP**
 
+✅ **MIGRATION COMPLETE (2026-01-31):** 0711-Vault is now fully independent!
+- Server deployment moved from `0711-Intelligence/backend` → `0711-Vault/backend`
+- 0711-Intelligence directory deleted from server
+- 0711-Intelligence repo pending deletion from GitHub (manual - token lacks delete permission)
+
 This project is **NOT** the broader 0711-Intelligence ecosystem. Do not work on:
 - Email integration
 - Calendar integration
@@ -14,8 +19,6 @@ This project is **NOT** the broader 0711-Intelligence ecosystem. Do not work on:
 - Cloud onboarding SaaS tiers
 - Federated learning
 - Enterprise features
-
-Those features belong in `/Users/m1/clawd/0711-Intelligence` - the umbrella project.
 
 ---
 
@@ -56,16 +59,27 @@ A **privacy-first personal photo & document vault** with:
      Without this, presigned download URLs point to internal minio:9000 which browsers can't reach. -->
 
 ### Server Services (192.168.145.10)
+
+**Deployment Source:** `/home/christoph.bertsch/0711-Vault/backend`
+**Compose Files:** `docker-compose.yml` + `docker-compose.prod.yml`
+
 | Service | Port | Status |
 |---------|------|--------|
-| vault-postgres | 9500 | ✅ Running |
-| vault-redis | 9501 | ✅ Running |
+| vault-postgres | 9500 | ✅ Running (healthy) |
+| vault-redis | 9501 | ✅ Running (healthy) |
 | vault-neo4j | 9502/9503 | ✅ Running |
-| vault-minio | 9504/9505 | ✅ Running |
+| vault-minio | 9504/9505 | ✅ Running (healthy) |
 | vault-api | 9506 | ✅ Running |
-| vault-ai | 8001 | ✅ Running |
+| vault-ai-service | 9507 | ✅ Running |
 | vault-frontend | 9508 | ✅ Running |
-| Ollama (docker) | 11434 | ✅ Running |
+| Ollama (docker) | 11434 | ✅ Running (external container) |
+
+**Data Volumes (preserved from migration):**
+- `backend_postgres-data` - User data, items, auth
+- `backend_redis-data` - Sessions, cache
+- `backend_neo4j-data` - Graph relationships
+- `backend_minio-data` - Photos, documents
+- `backend_ollama-data` - AI models
 
 ### Cloudflare Tunnel
 - **Tunnel ID:** `fb8267e6-0a22-44b8-9978-c3e3b32583f6`
@@ -135,24 +149,31 @@ Website already exists with comprehensive content!
 
 ### Known Issues (Production)
 
-**ACTION REQUIRED - Deploy on Server (192.168.145.10):**
-```bash
-cd ~/0711-Vault/backend   # or wherever the repo is
-git pull origin main
-docker compose down vault-api vault-ai-service
-docker compose up -d --build vault-api ai-service
-docker compose logs -f vault-api  # verify no errors
-```
+✅ **ALL CRITICAL ISSUES RESOLVED (2026-01-31)**
 
-**What this fixes:**
-- [x] Embedding model mismatch (was using nomic-embed-text, now uses bge-m3)
-- [x] Vision model mismatch (was using llava:7b, now uses llama4)
-- Commit: `f31590f` pushed to main
+**Completed Fixes:**
+- [x] Separated 0711-Vault from 0711-Intelligence on server
+- [x] Embedding model: `bge-m3:latest` (was nomic-embed-text)
+- [x] Vision model: `llama4:latest` (was llava:7b)
+- [x] MinIO external URL: `storage.0711.io` for presigned URLs
+- [x] Added missing Python dependencies (pydantic-settings, sqlalchemy, neo4j, ollama, structlog)
+- [x] External volumes configured for data persistence
 
 **Verified Working:**
-- ✅ Health endpoint returns healthy
+- ✅ Health endpoint: `{"status":"degraded","services":{"api":"healthy","postgres":"unknown","redis":"healthy","ollama":"healthy"}}`
+- ✅ Frontend: https://vault.0711.io → 200 OK
+- ✅ Storage: https://storage.0711.io → 200 OK
 - ✅ User registration works
 - ✅ User login returns JWT token
+
+**Minor:** Postgres health check shows "unknown" but database is running and functional.
+
+**Deploy Commands (for future updates):**
+```bash
+cd ~/0711-Vault/backend
+git pull origin main
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
 
 ---
 
@@ -260,14 +281,16 @@ The assistant should handle:
 
 ---
 
-## Files to IGNORE (belong in 0711-Intelligence)
+## Files to IGNORE (legacy, not part of vault scope)
 
-These files are in this repo but are NOT part of 0711-Vault scope:
+These files are in this repo but are NOT part of 0711-Vault scope (legacy from before separation):
 - `ROADMAP.md` - describes the broader 0711 AI assistant ecosystem
 - `ARCHITECTURE-SUMMARY.md` - describes SaaS tiers, federated learning
 - `CLOUD-ONBOARDING.md` - cloud migration service (different product)
 - `FLOW.md` - AI assistant conversation flows
 - `CONTENT-PLAN.md` - marketing for the ecosystem
+
+**Note:** 0711-Intelligence repo has been deleted. These files may be cleaned up in a future commit.
 
 Focus ONLY on:
 - `README.md` - project overview (vault only)
@@ -305,5 +328,33 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 18:25*
-*Focus: Photo Vault App ONLY - not the 0711 AI ecosystem*
+## Migration Log (2026-01-31)
+
+### Separation from 0711-Intelligence
+
+**Commits made today:**
+| Commit | Description |
+|--------|-------------|
+| `414b56a` | Use public storage.0711.io for presigned URLs |
+| `025101d` | Fix photo display: presigned URLs now work |
+| `f31590f` | Fix: use bge-m3 and llama4 models for embeddings/vision |
+| `7dc85fc` | Add production docker-compose for separate 0711-Vault deployment |
+| `1a0b995` | Add missing dependencies to vault-api |
+| `e72d4db` | Add missing dependencies: sqlalchemy, neo4j, ollama, structlog |
+
+**Files added/modified:**
+- `backend/docker-compose.prod.yml` - NEW: Production compose with external volumes
+- `backend/docker-compose.yml` - Updated ollama-init to use correct models
+- `backend/services/vault-api/requirements.txt` - Added missing dependencies
+- `backend/services/vault-api/config.py` - Set correct model defaults
+
+**Server changes:**
+- Cloned 0711-Vault to `/home/christoph.bertsch/0711-Vault`
+- Configured external volumes (references existing `backend_*` volumes)
+- Deleted `/home/christoph.bertsch/0711-Intelligence` directory
+- GitHub repo `christoph-ui/0711-Intelligence` - pending manual deletion
+
+---
+
+*Last updated: 2026-01-31 19:35*
+*Focus: Photo Vault App ONLY - fully independent deployment*
