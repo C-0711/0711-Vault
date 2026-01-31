@@ -1,0 +1,157 @@
+# 0711-Vault - FOCUSED PROJECT SCOPE
+
+## IMPORTANT: Project Boundaries
+
+**THIS IS 0711-Vault - A STANDALONE PHOTO/DOCUMENT VAULT APP**
+
+This project is **NOT** the broader 0711-Intelligence ecosystem. Do not work on:
+- Email integration
+- Calendar integration
+- Smart Home / HomeKit
+- Messaging bridges (WhatsApp, Telegram, iMessage)
+- Proactive AI assistant features
+- Flight check-in / travel features
+- Cloud onboarding SaaS tiers
+- Federated learning
+- Enterprise features
+
+Those features belong in `/Users/m1/clawd/0711-Intelligence` - the umbrella project.
+
+---
+
+## What 0711-Vault IS
+
+A **privacy-first personal photo & document vault** with:
+
+1. **iOS App** (`Vault0711/`) - SwiftUI app with Face ID, encrypted storage
+2. **Backend API** (`backend/`) - FastAPI server with PostgreSQL, MinIO, Neo4j
+3. **AI Service** (`backend/services/ai-service/`) - Face recognition, OCR, embeddings
+4. **Web Frontend** (`frontend/`) - React dashboard for managing vault
+5. **Landing Website** (`website/`) - Static HTML for 0711-ios.com
+
+**Core Features (in scope):**
+- Photo/document encrypted storage
+- Face recognition & people tagging
+- Semantic search ("photos from beach last summer")
+- Smart albums (AI-generated)
+- On-device AI processing
+- Optional cloud sync (to user's own server)
+
+---
+
+## Current Deployment Status
+
+**Running services (docker-compose.local.yml):**
+| Service | Port | Status |
+|---------|------|--------|
+| vault-postgres | 5432 | ✅ Running |
+| vault-redis | 6379 | ✅ Running |
+| vault-neo4j | 7474/7687 | ✅ Running |
+| vault-minio | 9000/9001 | ✅ Running |
+| vault-api | 8000 | ✅ Running |
+| vault-ai | 8001 | ✅ Running |
+| Ollama (host) | 11434 | ✅ Healthy |
+
+---
+
+## Launch Tasks (Priority Order)
+
+### Phase 1: Get Frontend Running
+- [x] Build frontend: `cd frontend && npm install && npm run build`
+- [x] Deploy frontend container on port 9508
+- [x] Verify frontend connects to vault-api on 9506
+
+### Phase 2: iOS App
+- [ ] Open `Vault0711/Vault0711.xcodeproj` in Xcode
+- [ ] Configure signing
+- [ ] Build and test on simulator
+- [ ] Test photo import, face detection, search
+
+### Phase 3: Marketing Website (PRIORITY)
+Website already exists with comprehensive content!
+
+**Key Benefits (all covered in index.html):**
+- [x] **Privacy First** - Your photos never leave your device (on-device AI)
+- [x] **Face Recognition** - Automatically organize by people, no cloud needed
+- [x] **Semantic Search** - "Find beach photos from last summer" works offline
+- [x] **End-to-End Encryption** - AES-256, only you have the keys
+- [x] **No Subscription Trap** - Own your data, no monthly fees for storage
+- [x] **Cross-Platform** - iOS app, web dashboard, self-hosted backend
+- [x] **Smart Albums** - AI-generated collections without Big Tech spying
+- [x] **Document Vault** - OCR and search for receipts, contracts, IDs
+
+**Website Pages:**
+- [x] Landing page with hero, features, screenshots (index.html)
+- [x] Features section (in index.html #features)
+- [x] Privacy page (privacy.html + #privacy section)
+- [x] Pricing section (in index.html #pricing)
+- [x] Launch page (launch.html)
+- [x] Terms & Imprint (terms.html, imprint.html)
+- [ ] Download/Get Started page (needs App Store link)
+
+**Design:**
+- [x] Modern, clean design (dark mode)
+- [ ] App screenshots and mockups (need real screenshots)
+- [x] Comparison table: 0711 Vault vs iCloud vs Google Photos
+
+### Phase 4: Public Access
+- [x] Install cloudflared: `brew install cloudflared` ✓
+- [ ] Configure Cloudflare tunnel for vault.0711-ios.com
+- [ ] Deploy marketing website to 0711-ios.com
+- [ ] Set up HTTPS and production API URLs
+
+### Phase 5: Polish
+- [x] Initialize Neo4j schema (Person, Photo, Document, Album, Tag + indexes)
+- [x] Verify Ollama models: `ollama list` (nomic-embed-text ✓, llava:7b ✓)
+- [x] Fix vault-api → Ollama connectivity (switched to docker-compose.local.yml)
+- [ ] End-to-end testing of upload -> AI processing -> search
+
+---
+
+## Files to IGNORE (belong in 0711-Intelligence)
+
+These files are in this repo but are NOT part of 0711-Vault scope:
+- `ROADMAP.md` - describes the broader 0711 AI assistant ecosystem
+- `ARCHITECTURE-SUMMARY.md` - describes SaaS tiers, federated learning
+- `CLOUD-ONBOARDING.md` - cloud migration service (different product)
+- `FLOW.md` - AI assistant conversation flows
+- `CONTENT-PLAN.md` - marketing for the ecosystem
+
+Focus ONLY on:
+- `README.md` - project overview (vault only)
+- `CLAUDE.md` - deployment rules
+- `STATUS.md` - current deployment status
+- `LAUNCH-CHECKLIST.md` - feature completion for vault
+- Code in `backend/`, `frontend/`, `Vault0711/`, `website/`
+
+---
+
+## Quick Reference
+
+**Start backend:**
+```bash
+cd /Users/m1/clawd/0711-Vault/backend
+docker compose up -d
+```
+
+**Start frontend (dev):**
+```bash
+cd /Users/m1/clawd/0711-Vault/frontend
+npm run dev
+```
+
+**Check services:**
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}" | grep vault
+```
+
+**API health check:**
+```bash
+curl http://localhost:9506/health
+curl http://localhost:9507/health
+```
+
+---
+
+*Last updated: 2026-01-31 09:20*
+*Focus: Photo Vault App ONLY - not the 0711 AI ecosystem*
