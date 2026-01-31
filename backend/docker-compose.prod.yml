@@ -1,0 +1,99 @@
+# Production overrides for 0711-Vault
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # Disable services not needed in production
+  traefik:
+    profiles: ["disabled"]
+
+  ollama:
+    profiles: ["disabled"]
+
+  ollama-init:
+    profiles: ["disabled"]
+
+  minio-init:
+    profiles: ["disabled"]
+
+  # Database services with vault- prefix and 9500+ ports
+  postgres:
+    container_name: vault-postgres
+    ports:
+      - "9500:5432"
+
+  redis:
+    container_name: vault-redis
+    ports:
+      - "9501:6379"
+
+  neo4j:
+    container_name: vault-neo4j
+    ports:
+      - "9502:7474"
+      - "9503:7687"
+
+  minio:
+    container_name: vault-minio
+    ports:
+      - "9504:9000"
+      - "9505:9001"
+
+  vault-api:
+    container_name: vault-api
+    ports:
+      - "9506:8000"
+    environment:
+      # Connect to Ollama container on shared network
+      OLLAMA_HOST: http://ollama:11434
+      EMBEDDING_MODEL: bge-m3:latest
+      VISION_MODEL: llama4:latest
+      # MinIO external URL for presigned URLs
+      MINIO_EXTERNAL_ENDPOINT: storage.0711.io
+      MINIO_SECURE: "true"
+    networks:
+      - default
+      - ollama-network
+
+  ai-service:
+    container_name: vault-ai-service
+    ports:
+      - "9507:8000"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      EMBEDDING_MODEL: bge-m3:latest
+      VISION_MODEL: llama4:latest
+    networks:
+      - default
+      - ollama-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    container_name: vault-frontend
+    ports:
+      - "9508:80"
+
+# Use existing volumes from previous deployment
+volumes:
+  postgres-data:
+    external: true
+    name: backend_postgres-data
+  redis-data:
+    external: true
+    name: backend_redis-data
+  neo4j-data:
+    external: true
+    name: backend_neo4j-data
+  minio-data:
+    external: true
+    name: backend_minio-data
+  ollama-data:
+    external: true
+    name: backend_ollama-data
+
+# Connect to existing Ollama container's network
+networks:
+  ollama-network:
+    external: true
+    name: backend_default

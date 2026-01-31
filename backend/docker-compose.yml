@@ -113,8 +113,8 @@ services:
     entrypoint: >
       /bin/sh -c "
       sleep 10;
-      ollama pull nomic-embed-text;
-      ollama pull llava:7b;
+      ollama pull bge-m3:latest;
+      ollama pull llama4:latest;
       echo 'Models downloaded successfully';
       "
 
