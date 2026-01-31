@@ -34,10 +34,15 @@ except ImportError:
 # Calendar
 from calendar_routes import router as calendar_router
 
+# Personal AI Assistant
+from routers.assistant import router as assistant_router
+
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3:latest")
+VISION_MODEL = os.getenv("VISION_MODEL", "llama4:latest")
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
@@ -99,6 +104,7 @@ app.add_middleware(
 # Include routers
 app.include_router(stripe_router)
 app.include_router(calendar_router)
+app.include_router(assistant_router, prefix="/assistant", tags=["AI Assistant"])
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
 
@@ -591,7 +597,7 @@ async def semantic_search(request: SearchRequest, user_id: str = Depends(get_cur
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{OLLAMA_HOST}/api/embeddings",
-                json={"model": "nomic-embed-text", "prompt": request.query},
+                json={"model": EMBEDDING_MODEL, "prompt": request.query},
                 timeout=30
             )
             if r.status_code != 200:
@@ -736,7 +742,7 @@ async def create_embedding(text: str, user_id: str = Depends(get_current_user)):
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{OLLAMA_HOST}/api/embeddings",
-                json={"model": "nomic-embed-text", "prompt": text},
+                json={"model": EMBEDDING_MODEL, "prompt": text},
                 timeout=30
             )
             if r.status_code == 200:

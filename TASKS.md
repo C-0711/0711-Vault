@@ -135,11 +135,19 @@ Website already exists with comprehensive content!
 
 ### Known Issues (Production)
 
-**FIXED - Needs Deploy:**
-- [x] **Embedding model mismatch** - Config expected `nomic-embed-text` but server has `bge-m3:latest`
-  - Updated: docker-compose.yml, docker-compose.override.yml, docker-compose.local.yml
-  - Updated: config.py defaults, ai-service/main.py (now uses env vars)
-  - **Deploy:** Rebuild containers on server: `cd backend && docker compose up -d --build`
+**ACTION REQUIRED - Deploy on Server (192.168.145.10):**
+```bash
+cd ~/0711-Vault/backend   # or wherever the repo is
+git pull origin main
+docker compose down vault-api vault-ai-service
+docker compose up -d --build vault-api ai-service
+docker compose logs -f vault-api  # verify no errors
+```
+
+**What this fixes:**
+- [x] Embedding model mismatch (was using nomic-embed-text, now uses bge-m3)
+- [x] Vision model mismatch (was using llava:7b, now uses llama4)
+- Commit: `f31590f` pushed to main
 
 **Verified Working:**
 - ✅ Health endpoint returns healthy
@@ -167,10 +175,10 @@ This is what kills Google Photos. Not just storage — intelligence that's YOURS
 - [ ] **Response Generator** - Generate answers grounded in YOUR data, not hallucinations
 
 ### 6.3 Chat Interface
-- [ ] **API Endpoint** - `POST /assistant/chat` with conversation memory
-- [ ] **Web Chat Panel** - Slide-out chat in vault frontend
-- [ ] **Conversation History** - Store chat sessions in PostgreSQL
-- [ ] **Streaming Responses** - SSE for real-time typing effect
+- [x] **API Endpoint** - `POST /assistant/chat` with conversation memory ✅ BUILT
+- [x] **Web Chat Panel** - Full-page chat at `/assistant` ✅ BUILT
+- [x] **Conversation History** - Stored in Redis (24hr TTL) ✅ BUILT
+- [x] **Streaming Responses** - SSE endpoint at `/assistant/chat/stream` ✅ BUILT
 
 ### 6.4 Query Capabilities
 The assistant should handle:
@@ -182,11 +190,12 @@ The assistant should handle:
 - "What did I do last Christmas?" → Timeline + event detection
 
 ### 6.5 Proactive Intelligence
-- [ ] **"On This Day"** - Surface memories from 1/2/3+ years ago
+- [x] **"On This Day"** - Surface memories from 1/2/3+ years ago ✅ BUILT (`/assistant/memories/on-this-day`)
+- [x] **Weekly Highlights** - Get recent photo highlights ✅ BUILT (`/assistant/memories/highlights`)
+- [x] **Person Timeline** - All memories with a specific person ✅ BUILT (`/assistant/memories/people/{id}`)
 - [ ] **Birthday Detection** - Parse dates from photos, remind about people's birthdays
 - [ ] **Smart Albums** - Auto-generate albums: "Best of 2024", "Summer Adventures", "Family Moments"
 - [ ] **Backup Reminders** - "You haven't uploaded photos in 2 weeks"
-- [ ] **Memory Highlights** - Weekly digest of interesting rediscovered photos
 
 ---
 

@@ -17,6 +17,7 @@ import Settings from './pages/Settings'
 import Pricing from './pages/Pricing'
 import Import from './pages/Import'
 import Calendar from './pages/Calendar'
+import Assistant from './pages/Assistant'
 import Layout from './components/Layout'
 
 function App() {
@@ -72,6 +73,7 @@ function App() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/import" element={<Import />} />
             <Route path="/calendar" element={<Calendar />} />
+            <Route path="/assistant" element={<Assistant />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
         )}

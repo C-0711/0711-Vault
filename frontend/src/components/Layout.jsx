@@ -95,6 +95,9 @@ export default function Layout() {
             <SidebarLink to="/" icon="🏠">
               Home
             </SidebarLink>
+            <SidebarLink to="/assistant" icon="🧠">
+              AI Assistant
+            </SidebarLink>
             <SidebarLink to="/photos" icon="📷">
               Photos
             </SidebarLink>
