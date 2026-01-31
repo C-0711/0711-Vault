@@ -74,6 +74,14 @@ services:
     ports:
       - "9508:80"
 
+  # Marketing website (static)
+  website:
+    build: ../website
+    container_name: vault-website
+    ports:
+      - "9509:80"
+    restart: unless-stopped
+
 # Use existing volumes from previous deployment
 volumes:
   postgres-data:

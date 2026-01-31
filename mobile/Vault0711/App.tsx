@@ -13,6 +13,7 @@ import VaultScreen from './src/screens/VaultScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import LockScreen from './src/screens/LockScreen';
+import AssistantScreen from './src/screens/AssistantScreen';
 
 // Theme
 import { colors, darkTheme, lightTheme } from './src/theme';
@@ -184,13 +185,23 @@ export default function App() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
-          <Stack.Screen 
-            name="Lock" 
+          <Stack.Screen
+            name="Lock"
             component={LockScreen}
             initialParams={{ onAuthenticate: () => setIsAuthenticated(true) }}
           />
         ) : (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen
+              name="Assistant"
+              component={AssistantScreen}
+              options={{
+                presentation: 'modal',
+                gestureEnabled: true,
+              }}
+            />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

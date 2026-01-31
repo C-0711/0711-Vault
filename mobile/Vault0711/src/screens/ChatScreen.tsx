@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, borderRadius, fonts } from '../theme';
 import { useChatService } from '../hooks/useChatService';
 
@@ -26,7 +27,8 @@ interface Message {
 export default function ChatScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
+  const navigation = useNavigation<any>();
+
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -37,9 +39,35 @@ export default function ChatScreen() {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const flatListRef = useRef<FlatList>(null);
   const { sendMessage } = useChatService();
+
+  // Add brain icon to header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Assistant')}
+          style={{ marginRight: spacing.md }}
+        >
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#8B5CF6',
+            paddingHorizontal: spacing.sm,
+            paddingVertical: spacing.xs,
+            borderRadius: borderRadius.md,
+          }}>
+            <Ionicons name="sparkles" size={16} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: fonts.sizes.xs, fontWeight: '600', marginLeft: 4 }}>
+              AI
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
   
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;

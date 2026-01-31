@@ -26,7 +26,7 @@ This project is **NOT** the broader 0711-Intelligence ecosystem. Do not work on:
 
 A **privacy-first personal photo & document vault** with:
 
-1. **iOS App** (`Vault0711/`) - SwiftUI app with Face ID, encrypted storage
+1. **Mobile Apps** - Native iOS (`Vault0711/`) + React Native (`mobile/Vault0711/`) with Face ID, encrypted storage
 2. **Backend API** (`backend/`) - FastAPI server with PostgreSQL, MinIO, Neo4j
 3. **AI Service** (`backend/services/ai-service/`) - Face recognition, OCR, embeddings
 4. **Web Frontend** (`frontend/`) - React dashboard for managing vault
@@ -95,11 +95,17 @@ A **privacy-first personal photo & document vault** with:
 - [x] Deploy frontend container on port 9508
 - [x] Verify frontend connects to vault-api on 9506
 
-### Phase 2: iOS App ✅
+### Phase 2: Mobile Apps ✅
+**Native iOS (SwiftUI):** `Vault0711/`
 - [x] Open `Vault0711/Vault0711.xcodeproj` in Xcode
 - [x] Configure signing (team signed)
-- [x] Regenerated project with XcodeGen (fixed missing Services files)
 - [x] Build and run on iPhone 16 Pro simulator
+
+**Cross-Platform (React Native):** `mobile/Vault0711/`
+- [x] Tab navigation: Chat, Vault, Scan, Settings
+- [x] Biometric authentication (Face ID)
+- [x] API client connecting to vault-api
+- [x] AI Assistant chat screen with full UI ✅ (2026-01-31)
 - [ ] Test photo import, face detection, search (manual testing)
 
 ### Phase 3: Marketing Website (PRIORITY)
@@ -220,12 +226,24 @@ The assistant should handle:
 
 ---
 
-## 📱 PHASE 7: iOS Assistant Integration
+## 📱 PHASE 7: Mobile Assistant Integration
 
-### 7.1 Chat in iOS App
-- [ ] Chat view in SwiftUI (matches web design)
+### 7.1 Chat in Mobile App ✅ COMPLETE (2026-01-31)
+- [x] **AssistantScreen.tsx** - Full chat UI with purple user bubbles, gray assistant bubbles
+- [x] **API integration** - `chatWithAssistant()`, `getOnThisDayMemories()`, `getHighlights()` in api.ts
+- [x] **Entry point** - Purple "AI" button in Chat tab header
+- [x] **Suggested prompts** - Empty state with 4 starter questions
+- [x] **Source attribution** - Shows photo/document count from vault context
+- [x] **Conversation persistence** - conversation_id tracked across messages
+- [x] **Navigation** - Modal presentation from main tabs
 - [ ] Offline mode with local LLM fallback (stretch goal)
 - [ ] Voice input for queries
+
+**Files created/modified:**
+- `mobile/Vault0711/src/screens/AssistantScreen.tsx` - NEW
+- `mobile/Vault0711/src/services/api.ts` - Added assistant methods
+- `mobile/Vault0711/src/screens/ChatScreen.tsx` - Added AI button
+- `mobile/Vault0711/App.tsx` - Added Assistant to navigation
 
 ### 7.2 Proactive Notifications
 - [ ] Push notifications for "On This Day" memories
@@ -257,16 +275,44 @@ The assistant should handle:
 
 ## 🚀 PHASE 9: Launch Prep
 
-### 9.1 App Store
+### 9.1 App Store ✅ CONTENT READY
 - [ ] App screenshots (real, not mockups)
-- [ ] App Store description + keywords
-- [ ] Privacy policy (emphasize local-first)
+- [x] App Store description + keywords ✅ See `/appstore/APPSTORE_CONTENT.md`
+- [x] Privacy policy (emphasize local-first) ✅ `/website/privacy.html`
 - [ ] Submit to TestFlight → App Store
 
-### 9.2 Website
-- [ ] Download page with App Store badge
+**App Store content includes:**
+- App name, subtitle
+- Full description (4000 chars)
+- Keywords (100 chars)
+- What's New text
+- Promotional text
+- Screenshot text suggestions
+- ASO strategy
+
+### 9.2 Marketing Website
+**Status:** Static site in `/website/` - needs deployment
+
+**Current URLs:**
+- `0711.io` → Enterprise B2B product (different)
+- `vault.0711.io` → Vault React app (dashboard)
+- **NEEDED:** Landing page for Vault marketing
+
+**Deploy option added to docker-compose.prod.yml:**
+```bash
+# Port 9509 → Add to Cloudflare tunnel as landing.vault.0711.io or similar
+vault-website container on port 9509
+```
+
+**Pages ready:**
+- [x] Landing page (index.html) - German
+- [x] Privacy policy (privacy.html)
+- [x] Terms (terms.html)
+- [x] Imprint (imprint.html)
+- [x] Launch page (launch.html)
+- [ ] Download page with App Store badge (add after approval)
 - [ ] Demo video showing privacy features
-- [ ] "Why not Google Photos" comparison page
+- [ ] English translation
 
 ### 9.3 Self-Hosting Docs
 - [ ] One-click Docker Compose setup
@@ -297,7 +343,7 @@ Focus ONLY on:
 - `CLAUDE.md` - deployment rules
 - `STATUS.md` - current deployment status
 - `LAUNCH-CHECKLIST.md` - feature completion for vault
-- Code in `backend/`, `frontend/`, `Vault0711/`, `website/`
+- Code in `backend/`, `frontend/`, `Vault0711/`, `mobile/`, `website/`
 
 ---
 
@@ -335,12 +381,14 @@ curl http://localhost:9507/health
 **Commits made today:**
 | Commit | Description |
 |--------|-------------|
+| `7ea2d9e` | feat: Personal AI Assistant - the beast killer (backend + web) |
+| `f31590f` | Fix: use bge-m3 and llama4 models for embeddings/vision |
 | `414b56a` | Use public storage.0711.io for presigned URLs |
 | `025101d` | Fix photo display: presigned URLs now work |
-| `f31590f` | Fix: use bge-m3 and llama4 models for embeddings/vision |
 | `7dc85fc` | Add production docker-compose for separate 0711-Vault deployment |
 | `1a0b995` | Add missing dependencies to vault-api |
 | `e72d4db` | Add missing dependencies: sqlalchemy, neo4j, ollama, structlog |
+| (pending) | feat: Mobile AI Assistant chat UI |
 
 **Files added/modified:**
 - `backend/docker-compose.prod.yml` - NEW: Production compose with external volumes
@@ -356,5 +404,5 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 19:35*
+*Last updated: 2026-01-31 22:30*
 *Focus: Photo Vault App ONLY - fully independent deployment*

@@ -193,6 +193,38 @@ class VaultAPI {
   async health() {
     return this.request('/health');
   }
+
+  // Assistant
+  async chatWithAssistant(message: string, conversationId?: string) {
+    return this.request('/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        conversation_id: conversationId,
+        include_context: true,
+      }),
+    });
+  }
+
+  async getOnThisDayMemories() {
+    return this.request('/assistant/memories/on-this-day');
+  }
+
+  async getHighlights(days: number = 7) {
+    return this.request(`/assistant/memories/highlights?days=${days}`);
+  }
+}
+
+export interface AssistantSource {
+  type: string;
+  id: string;
+  date?: string;
+}
+
+export interface AssistantResponse {
+  response: string;
+  conversation_id: string;
+  sources: AssistantSource[];
 }
 
 export const api = new VaultAPI();
