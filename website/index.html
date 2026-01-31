@@ -731,6 +731,69 @@
       text-align: center;
     }
     
+    /* Comparison */
+    .comparison {
+      padding: 120px 0;
+    }
+    
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+      padding: 20px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .comparison-table th {
+      background: var(--bg);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    .comparison-table th:first-child {
+      width: 35%;
+    }
+    
+    .comparison-table td {
+      font-size: 14px;
+    }
+    
+    .comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .comparison-table .feature-name {
+      font-weight: 600;
+    }
+    
+    .comparison-table .yes {
+      color: #22c55e;
+    }
+    
+    .comparison-table .no {
+      color: #ef4444;
+    }
+    
+    .comparison-table .partial {
+      color: #eab308;
+    }
+    
+    .comparison-table .highlight {
+      background: var(--primary-glow);
+    }
+    
+    .comparison-table th.highlight {
+      color: var(--primary);
+    }
+    
     /* CTA */
     .cta {
       padding: 120px 0;
@@ -988,7 +1051,7 @@
         <div class="feature-card">
           <div class="feature-icon">👤</div>
           <h3>Gesichtserkennung</h3>
-          <p>Finde Fotos von bestimmten Personen. Die KI läuft komplett lokal – deine Bilder verlassen niemals unverschlüsselt dein Gerät.</p>
+          <p>Finde Fotos von bestimmten Personen. Albert läuft komplett lokal – deine Bilder verlassen niemals unverschlüsselt dein Gerät.</p>
         </div>
         
         <div class="feature-card">
@@ -1073,7 +1136,7 @@
               <div class="ai-feature-icon">🧠</div>
               <div class="ai-feature-text">
                 <h4>On-Device Processing</h4>
-                <p>Die KI läuft lokal – deine Daten bleiben privat</p>
+                <p>Albert läuft lokal – deine Daten bleiben privat</p>
               </div>
             </div>
             <div class="ai-feature">
@@ -1170,6 +1233,78 @@
           <a href="/register?plan=family" class="btn btn-secondary">Family wählen</a>
         </div>
       </div>
+    </div>
+  </section>
+  
+  <!-- Comparison -->
+  <section class="comparison" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Vergleich</span>
+        <h2>Warum 0711 Vault?</h2>
+        <p>Der ehrliche Vergleich mit Big Tech</p>
+      </div>
+      
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>iCloud Fotos</th>
+            <th>Google Fotos</th>
+            <th class="highlight">0711 Vault</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="feature-name">Ende-zu-Ende-Verschlüsselung</td>
+            <td class="partial">⚠️ Teilweise</td>
+            <td class="no">❌ Nein</td>
+            <td class="yes highlight">✅ Immer</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Albert auf dem Gerät</td>
+            <td class="partial">⚠️ Teilweise</td>
+            <td class="no">❌ Cloud</td>
+            <td class="yes highlight">✅ 100% lokal</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Gesichtserkennung ohne Cloud</td>
+            <td class="yes">✅ Ja</td>
+            <td class="no">❌ Nein</td>
+            <td class="yes highlight">✅ Ja</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Semantische Suche</td>
+            <td class="no">❌ Nein</td>
+            <td class="yes">✅ Ja (Cloud)</td>
+            <td class="yes highlight">✅ Ja (lokal)</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Keine Abo-Falle</td>
+            <td class="no">❌ Monatlich</td>
+            <td class="no">❌ Monatlich</td>
+            <td class="yes highlight">✅ Einmalkauf</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Self-Hosting möglich</td>
+            <td class="no">❌ Nein</td>
+            <td class="no">❌ Nein</td>
+            <td class="yes highlight">✅ Ja</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Open Source</td>
+            <td class="no">❌ Nein</td>
+            <td class="no">❌ Nein</td>
+            <td class="yes highlight">✅ Backend</td>
+          </tr>
+          <tr>
+            <td class="feature-name">Datenhoheit</td>
+            <td class="partial">⚠️ Apple</td>
+            <td class="no">❌ Google</td>
+            <td class="yes highlight">✅ Du</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </section>
   

@@ -16,7 +16,7 @@ const features = [
   {
     icon: FileText,
     title: 'Dokumente organisiert',
-    desc: 'KI-gestützte Erkennung und Sortierung.'
+    desc: 'Alberts Erkennung und Sortierung.'
   },
   {
     icon: MessageSquare,

@@ -4,7 +4,11 @@ import Foundation
 class VaultAPI {
     static let shared = VaultAPI()
     
+    #if DEBUG
     private var baseURL = "http://localhost:8000"
+    #else
+    private var baseURL = "https://api-vault.0711.io"
+    #endif
     private var token: String?
     
     private init() {

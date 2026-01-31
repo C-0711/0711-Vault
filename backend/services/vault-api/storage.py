@@ -11,20 +11,23 @@ from minio.error import S3Error
 # Configuration
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
 MINIO_EXTERNAL_ENDPOINT = os.getenv("MINIO_EXTERNAL_ENDPOINT", "localhost:9000")
+# For Docker: use host.docker.internal to reach MinIO for signing, but URL will show external endpoint
+MINIO_SIGNING_ENDPOINT = os.getenv("MINIO_SIGNING_ENDPOINT", MINIO_EXTERNAL_ENDPOINT)
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
 BUCKET_NAME = os.getenv("MINIO_BUCKET", "vault")
 
-# Initialize client
-minio_client = None
+# Initialize clients
+_internal_client = None  # For internal operations (bucket management, etc.)
+_signing_client = None   # For generating presigned URLs (uses signing endpoint)
 
 
 def get_minio_client() -> Minio:
     """Get or create MinIO client (internal, for operations)."""
-    global minio_client
-    if minio_client is None:
-        minio_client = Minio(
+    global _internal_client
+    if _internal_client is None:
+        _internal_client = Minio(
             MINIO_ENDPOINT,
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
@@ -32,11 +35,37 @@ def get_minio_client() -> Minio:
         )
         # Ensure bucket exists
         try:
-            if not minio_client.bucket_exists(BUCKET_NAME):
-                minio_client.make_bucket(BUCKET_NAME)
+            if not _internal_client.bucket_exists(BUCKET_NAME):
+                _internal_client.make_bucket(BUCKET_NAME)
         except S3Error as e:
             print(f"MinIO bucket error: {e}")
-    return minio_client
+    return _internal_client
+
+
+def get_signing_client() -> Minio:
+    """Get or create MinIO client for generating presigned URLs.
+    
+    Uses external endpoint for signing so URLs work from browser.
+    Sets region explicitly to avoid network calls to MinIO.
+    """
+    global _signing_client
+    if _signing_client is None:
+        # Use the external endpoint directly for signing - the signature will be valid
+        # when accessed from browser via the same endpoint
+        _signing_client = Minio(
+            MINIO_EXTERNAL_ENDPOINT,  # Sign with external endpoint so signature matches
+            access_key=MINIO_ACCESS_KEY,
+            secret_key=MINIO_SECRET_KEY,
+            secure=MINIO_SECURE,
+            region="us-east-1"  # Set region explicitly to avoid network call
+        )
+    return _signing_client
+
+
+# Keep old function name for compatibility
+def get_external_client() -> Minio:
+    """Deprecated: use get_signing_client instead."""
+    return get_signing_client()
 
 
 def generate_upload_url(
@@ -53,26 +82,24 @@ def generate_upload_url(
     """
     import uuid
     
+    # Ensure bucket exists (via internal client)
+    get_minio_client()
+    
     # Generate unique storage key
     file_ext = filename.split('.')[-1] if '.' in filename else ''
     storage_key = f"{user_id}/{uuid.uuid4()}"
     if file_ext:
         storage_key += f".{file_ext}"
     
-    # Use internal client to generate URL and ensure bucket exists
-    client = get_minio_client()
+    # Use EXTERNAL client for presigned URL generation
+    # This ensures the signature matches the hostname the browser will use
+    client = get_external_client()
     
-    # Generate presigned PUT URL
     url = client.presigned_put_object(
         BUCKET_NAME,
         storage_key,
         expires=expires
     )
-    
-    # Replace internal hostname with external one for browser access
-    if MINIO_ENDPOINT != MINIO_EXTERNAL_ENDPOINT:
-        url = url.replace(f"http://{MINIO_ENDPOINT}", f"http://{MINIO_EXTERNAL_ENDPOINT}")
-        url = url.replace(f"https://{MINIO_ENDPOINT}", f"https://{MINIO_EXTERNAL_ENDPOINT}")
     
     return url, storage_key
 
@@ -93,9 +120,8 @@ def generate_download_url(
     Returns:
         Presigned download URL
     """
-    from urllib.parse import urlencode
-    
-    client = get_minio_client()
+    # Use SIGNING client (external endpoint) so signature matches browser access
+    client = get_signing_client()
     
     # Response headers for download
     response_headers = {}
@@ -108,11 +134,6 @@ def generate_download_url(
         expires=expires,
         response_headers=response_headers if response_headers else None
     )
-    
-    # Replace internal hostname with external one for browser access
-    if MINIO_ENDPOINT != MINIO_EXTERNAL_ENDPOINT:
-        url = url.replace(f"http://{MINIO_ENDPOINT}", f"http://{MINIO_EXTERNAL_ENDPOINT}")
-        url = url.replace(f"https://{MINIO_ENDPOINT}", f"https://{MINIO_EXTERNAL_ENDPOINT}")
     
     return url
 

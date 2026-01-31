@@ -364,7 +364,7 @@ async def list_items(
                 FROM vault_items
                 WHERE user_id = $1 AND deleted_at IS NULL
                 ORDER BY COALESCE(captured_at, created_at) DESC
-                LIMIT $3 OFFSET $4
+                LIMIT $2 OFFSET $3
             """, user_id, limit, offset)
         
         return {"items": [dict(item) for item in items], "count": len(items)}

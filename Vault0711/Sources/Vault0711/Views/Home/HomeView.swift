@@ -130,7 +130,7 @@ struct HomeView: View {
                             VStack(alignment: .leading) {
                                 Text("\(stats.pending) Elemente werden verarbeitet")
                                     .font(.subheadline)
-                                Text("KI analysiert deine Fotos")
+                                Text("Albert analysiert deine Fotos")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -151,8 +151,8 @@ struct HomeView: View {
                             color: .blue
                         )
                         QuickAction(
-                            title: "KI trainieren",
-                            subtitle: "Personen in Fotos benennen",
+                            title: "Albert trainieren",
+                            subtitle: "Hilf Albert, Personen zu erkennen",
                             icon: "brain",
                             color: .purple
                         )

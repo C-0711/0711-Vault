@@ -41,16 +41,31 @@ A **privacy-first personal photo & document vault** with:
 
 ## Current Deployment Status
 
-**Running services (docker-compose.local.yml):**
+### Public URLs (LIVE via Cloudflare Tunnel)
+| URL | Service | Status |
+|-----|---------|--------|
+| https://0711.io | Main Website | ✅ Live |
+| https://vault.0711.io | Vault Frontend | ✅ Live |
+| https://api-vault.0711.io | Vault API | ✅ Live |
+
+**Note:** Using `api-vault.0711.io` (not `api.vault.0711.io`) due to SSL wildcard limitation.
+
+### Server Services (192.168.145.10)
 | Service | Port | Status |
 |---------|------|--------|
-| vault-postgres | 5432 | ✅ Running |
-| vault-redis | 6379 | ✅ Running |
-| vault-neo4j | 7474/7687 | ✅ Running |
-| vault-minio | 9000/9001 | ✅ Running |
-| vault-api | 8000 | ✅ Running |
+| vault-postgres | 9500 | ✅ Running |
+| vault-redis | 9501 | ✅ Running |
+| vault-neo4j | 9502/9503 | ✅ Running |
+| vault-minio | 9504/9505 | ✅ Running |
+| vault-api | 9506 | ✅ Running |
 | vault-ai | 8001 | ✅ Running |
-| Ollama (host) | 11434 | ✅ Healthy |
+| vault-frontend | 9508 | ✅ Running |
+| Ollama (host) | 11434 | ⚠️ Unavailable |
+
+### Cloudflare Tunnel
+- **Tunnel ID:** `fb8267e6-0a22-44b8-9978-c3e3b32583f6`
+- **Account:** `3345174c867b5edb43fd4bc31bf8dce5`
+- **Zone ID:** `5f0187dcd3dcf5daae58b9a37f569c1a`
 
 ---
 
@@ -61,11 +76,12 @@ A **privacy-first personal photo & document vault** with:
 - [x] Deploy frontend container on port 9508
 - [x] Verify frontend connects to vault-api on 9506
 
-### Phase 2: iOS App
-- [ ] Open `Vault0711/Vault0711.xcodeproj` in Xcode
-- [ ] Configure signing
-- [ ] Build and test on simulator
-- [ ] Test photo import, face detection, search
+### Phase 2: iOS App ✅
+- [x] Open `Vault0711/Vault0711.xcodeproj` in Xcode
+- [x] Configure signing (team signed)
+- [x] Regenerated project with XcodeGen (fixed missing Services files)
+- [x] Build and run on iPhone 16 Pro simulator
+- [ ] Test photo import, face detection, search (manual testing)
 
 ### Phase 3: Marketing Website (PRIORITY)
 Website already exists with comprehensive content!
@@ -94,17 +110,27 @@ Website already exists with comprehensive content!
 - [ ] App screenshots and mockups (need real screenshots)
 - [x] Comparison table: 0711 Vault vs iCloud vs Google Photos
 
-### Phase 4: Public Access
-- [x] Install cloudflared: `brew install cloudflared` ✓
-- [ ] Configure Cloudflare tunnel for vault.0711-ios.com
-- [ ] Deploy marketing website to 0711-ios.com
-- [ ] Set up HTTPS and production API URLs
+### Phase 4: Public Access ✅ COMPLETE
+- [x] Cloudflare tunnel configured and running
+- [x] vault.0711.io → Frontend (port 9508)
+- [x] api-vault.0711.io → API (port 9506)
+- [x] 0711.io → Main website (port 4000)
+- [x] Frontend updated to use https://api-vault.0711.io
+- [x] HTTPS enabled via Cloudflare
+
+**DO NOT create new tunnel** - tunnel already exists: `fb8267e6-0a22-44b8-9978-c3e3b32583f6`
 
 ### Phase 5: Polish
 - [x] Initialize Neo4j schema (Person, Photo, Document, Album, Tag + indexes)
 - [x] Verify Ollama models: `ollama list` (nomic-embed-text ✓, llava:7b ✓)
-- [x] Fix vault-api → Ollama connectivity (switched to docker-compose.local.yml)
-- [ ] End-to-end testing of upload -> AI processing -> search
+- [x] Fix vault-api → Ollama connectivity (local works via docker-compose.local.yml)
+- [x] E2E testing: Registration, Login, Stats, Create Item ✓
+- [ ] **Fix production Ollama** - semantic search fails (Ollama not reachable from prod container)
+- [ ] **Fix MinIO external URL** - upload URLs return internal `minio:9000`, need public URL
+
+### Known Issues (Production)
+1. **Ollama unavailable** - API health shows `"ollama": "unavailable"` on prod
+2. **MinIO internal URLs** - Upload URLs point to `minio:9000` instead of public endpoint
 
 ---
 
@@ -153,5 +179,5 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 09:20*
+*Last updated: 2026-01-31 16:45*
 *Focus: Photo Vault App ONLY - not the 0711 AI ecosystem*

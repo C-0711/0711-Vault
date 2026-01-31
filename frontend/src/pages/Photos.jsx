@@ -176,15 +176,7 @@ export default function Photos() {
       {view === 'grid' && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {items.map((item) => (
-            <div
-              key={item.id}
-              className="aspect-square bg-zinc-800 rounded-lg overflow-hidden"
-            >
-              {/* In production, this would show the actual image */}
-              <div className="w-full h-full flex items-center justify-center text-4xl text-zinc-600">
-                🖼️
-              </div>
-            </div>
+            <PhotoItem key={item.id} item={item} />
           ))}
           
           {items.length === 0 && (
@@ -283,6 +275,54 @@ export default function Photos() {
               <div className="text-zinc-500">Upload more photos to train your AI further</div>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PhotoItem({ item }) {
+  const [imageUrl, setImageUrl] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    async function loadImage() {
+      try {
+        const details = await api.getItem(item.id)
+        if (details.download_url) {
+          setImageUrl(details.download_url)
+        }
+      } catch (err) {
+        console.error('Failed to load image:', err)
+        setError(true)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadImage()
+  }, [item.id])
+
+  return (
+    <div className="aspect-square bg-zinc-800 rounded-lg overflow-hidden">
+      {loading ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-zinc-600 border-t-white rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="w-full h-full flex items-center justify-center text-4xl text-zinc-600">
+          ❌
+        </div>
+      ) : imageUrl ? (
+        <img 
+          src={imageUrl} 
+          alt="" 
+          className="w-full h-full object-cover"
+          onError={() => setError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-4xl text-zinc-600">
+          🖼️
         </div>
       )}
     </div>
