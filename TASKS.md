@@ -47,8 +47,13 @@ A **privacy-first personal photo & document vault** with:
 | https://0711.io | Main Website | ✅ Live |
 | https://vault.0711.io | Vault Frontend | ✅ Live |
 | https://api-vault.0711.io | Vault API | ✅ Live |
+| https://storage.0711.io | MinIO Storage | ✅ Live |
 
 **Note:** Using `api-vault.0711.io` (not `api.vault.0711.io`) due to SSL wildcard limitation.
+
+<!-- IMPORTANT: storage.0711.io was added 2026-01-31 to enable image previews in frontend.
+     The backend must set MINIO_EXTERNAL_ENDPOINT=storage.0711.io for presigned URLs to work.
+     Without this, presigned download URLs point to internal minio:9000 which browsers can't reach. -->
 
 ### Server Services (192.168.145.10)
 | Service | Port | Status |
@@ -126,11 +131,16 @@ Website already exists with comprehensive content!
 - [x] Fix vault-api → Ollama connectivity (local works via docker-compose.local.yml)
 - [x] E2E testing: Registration, Login, Stats, Create Item ✓
 - [ ] **Fix production Ollama** - semantic search fails (Ollama not reachable from prod container)
-- [ ] **Fix MinIO external URL** - upload URLs return internal `minio:9000`, need public URL
+- [x] **Fix MinIO external URL** - storage.0711.io route added to Cloudflare tunnel
 
 ### Known Issues (Production)
 1. **Ollama unavailable** - API health shows `"ollama": "unavailable"` on prod
-2. **MinIO internal URLs** - Upload URLs point to `minio:9000` instead of public endpoint
+
+<!-- MinIO Config Required:
+     Set these env vars in vault-api container for image previews to work:
+     - MINIO_EXTERNAL_ENDPOINT=storage.0711.io
+     - MINIO_SECURE=true
+     This ensures presigned URLs point to https://storage.0711.io instead of internal minio:9000 -->
 
 ---
 
@@ -179,5 +189,5 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 16:45*
+*Last updated: 2026-01-31 18:05*
 *Focus: Photo Vault App ONLY - not the 0711 AI ecosystem*
