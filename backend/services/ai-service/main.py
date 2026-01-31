@@ -51,6 +51,8 @@ except ImportError:
 # Configuration
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3:latest")
+VISION_MODEL = os.getenv("VISION_MODEL", "llama4:latest")
 
 # Initialize MediaPipe face detection
 face_detection = None
@@ -285,7 +287,7 @@ async def generate_face_embedding(face_image) -> List[float]:
             r = await client.post(
                 f"{OLLAMA_HOST}/api/generate",
                 json={
-                    "model": "llava:7b",
+                    "model": VISION_MODEL,
                     "prompt": "Describe this person's face briefly for identification: age range, distinctive features.",
                     "images": [face_b64],
                     "stream": False
@@ -300,7 +302,7 @@ async def generate_face_embedding(face_image) -> List[float]:
             # Then embed the description
             r = await client.post(
                 f"{OLLAMA_HOST}/api/embeddings",
-                json={"model": "nomic-embed-text", "prompt": description},
+                json={"model": EMBEDDING_MODEL, "prompt": description},
                 timeout=30
             )
             if r.status_code == 200:
@@ -329,7 +331,7 @@ async def embed_image(file: UploadFile = File(...)):
             r = await client.post(
                 f"{OLLAMA_HOST}/api/generate",
                 json={
-                    "model": "llava:7b",
+                    "model": VISION_MODEL,
                     "prompt": "Describe this image in detail: objects, people, scene, colors, mood, activities.",
                     "images": [image_b64],
                     "stream": False
@@ -345,7 +347,7 @@ async def embed_image(file: UploadFile = File(...)):
             # Embed the description
             r = await client.post(
                 f"{OLLAMA_HOST}/api/embeddings",
-                json={"model": "nomic-embed-text", "prompt": description},
+                json={"model": EMBEDDING_MODEL, "prompt": description},
                 timeout=30
             )
             
@@ -356,7 +358,7 @@ async def embed_image(file: UploadFile = File(...)):
             
             return EmbeddingResponse(
                 embedding=embedding,
-                model="llava+nomic-embed-text",
+                model=f"{VISION_MODEL}+{EMBEDDING_MODEL}",
                 dimensions=len(embedding)
             )
     except httpx.TimeoutException:
@@ -370,7 +372,7 @@ async def embed_text(text: str = Form(...)):
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{OLLAMA_HOST}/api/embeddings",
-                json={"model": "nomic-embed-text", "prompt": text},
+                json={"model": EMBEDDING_MODEL, "prompt": text},
                 timeout=30
             )
             
@@ -381,7 +383,7 @@ async def embed_text(text: str = Form(...)):
             
             return EmbeddingResponse(
                 embedding=embedding,
-                model="nomic-embed-text",
+                model=EMBEDDING_MODEL,
                 dimensions=len(embedding)
             )
     except httpx.TimeoutException:
@@ -403,7 +405,7 @@ async def analyze_image(file: UploadFile = File(...)):
             r = await client.post(
                 f"{OLLAMA_HOST}/api/generate",
                 json={
-                    "model": "llava:7b",
+                    "model": VISION_MODEL,
                     "prompt": """Analyze this image and respond in JSON format:
 {
   "description": "detailed description",
@@ -461,7 +463,7 @@ async def extract_text(file: UploadFile = File(...), language: str = "eng"):
                 r = await client.post(
                     f"{OLLAMA_HOST}/api/generate",
                     json={
-                        "model": "llava:7b",
+                        "model": VISION_MODEL,
                         "prompt": "Extract and transcribe ALL text visible in this image. Return only the text, nothing else.",
                         "images": [image_b64],
                         "stream": False
@@ -511,7 +513,7 @@ async def categorize_document(file: UploadFile = File(...)):
             r = await client.post(
                 f"{OLLAMA_HOST}/api/generate",
                 json={
-                    "model": "llava:7b",
+                    "model": VISION_MODEL,
                     "prompt": """Categorize this document. Respond in JSON:
 {
   "category": "one of: invoice, receipt, contract, letter, medical, financial, legal, identity, certificate, other",
@@ -600,7 +602,7 @@ async def full_process(
                 r = await client.post(
                     f"{OLLAMA_HOST}/api/generate",
                     json={
-                        "model": "llava:7b",
+                        "model": VISION_MODEL,
                         "prompt": "Describe this image in detail: objects, people, scene, colors, mood, activities, any text visible.",
                         "images": [image_b64],
                         "stream": False
@@ -617,7 +619,7 @@ async def full_process(
                     if generate_embedding:
                         r = await client.post(
                             f"{OLLAMA_HOST}/api/embeddings",
-                            json={"model": "nomic-embed-text", "prompt": description},
+                            json={"model": EMBEDDING_MODEL, "prompt": description},
                             timeout=30
                         )
                         if r.status_code == 200:
@@ -632,7 +634,7 @@ async def full_process(
                 r = await client.post(
                     f"{OLLAMA_HOST}/api/generate",
                     json={
-                        "model": "llava:7b",
+                        "model": VISION_MODEL,
                         "prompt": "Extract ALL text visible in this image. Return only the text.",
                         "images": [image_b64],
                         "stream": False

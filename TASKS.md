@@ -65,7 +65,7 @@ A **privacy-first personal photo & document vault** with:
 | vault-api | 9506 | ✅ Running |
 | vault-ai | 8001 | ✅ Running |
 | vault-frontend | 9508 | ✅ Running |
-| Ollama (host) | 11434 | ⚠️ Unavailable |
+| Ollama (docker) | 11434 | ✅ Running |
 
 ### Cloudflare Tunnel
 - **Tunnel ID:** `fb8267e6-0a22-44b8-9978-c3e3b32583f6`
@@ -127,14 +127,121 @@ Website already exists with comprehensive content!
 
 ### Phase 5: Polish
 - [x] Initialize Neo4j schema (Person, Photo, Document, Album, Tag + indexes)
-- [x] Verify Ollama models: `ollama list` (nomic-embed-text ✓, llava:7b ✓)
+- [x] Verify Ollama models: llama4 (108B), gpt-oss (120B), qwen3 (32B), mixtral, mistral, bge-m3 (embeddings)
 - [x] Fix vault-api → Ollama connectivity (local works via docker-compose.local.yml)
 - [x] E2E testing: Registration, Login, Stats, Create Item ✓
-- [ ] **Fix production Ollama** - semantic search fails (Ollama not reachable from prod container)
+- [x] **Fix production Ollama** - Started Ollama container, connected to backend_default network
 - [x] **Fix MinIO external URL** - storage.0711.io route added to Cloudflare tunnel
 
 ### Known Issues (Production)
-1. **Ollama unavailable** - API health shows `"ollama": "unavailable"` on prod
+
+**FIXED - Needs Deploy:**
+- [x] **Embedding model mismatch** - Config expected `nomic-embed-text` but server has `bge-m3:latest`
+  - Updated: docker-compose.yml, docker-compose.override.yml, docker-compose.local.yml
+  - Updated: config.py defaults, ai-service/main.py (now uses env vars)
+  - **Deploy:** Rebuild containers on server: `cd backend && docker compose up -d --build`
+
+**Verified Working:**
+- ✅ Health endpoint returns healthy
+- ✅ User registration works
+- ✅ User login returns JWT token
+
+---
+
+## 🧠 PHASE 6: Personal AI Assistant - THE KILLER FEATURE
+
+**Mission:** An AI that lives inside YOUR vault, learns about YOUR life, answers to NO ONE but you.
+
+This is what kills Google Photos. Not just storage — intelligence that's YOURS.
+
+### 6.1 Knowledge Foundation
+- [ ] **Event Detection** - Cluster photos by time+location into "events" (Trip to Paris, Christmas 2024, etc.)
+- [ ] **Person Relationships** - Track who appears together (family groups, friend circles)
+- [ ] **Place Memory** - Extract and name recurring locations (Home, Office, Mom's house)
+- [ ] **Timeline Index** - Queryable timeline in Neo4j (what happened when)
+
+### 6.2 RAG Pipeline (Retrieval-Augmented Generation)
+- [ ] **Context Builder** - Pull relevant vault data for any query
+- [ ] **Query Understanding** - Classify intent: search, question, memory request, action
+- [ ] **Hybrid Retrieval** - Combine vector search + graph traversal for answers
+- [ ] **Response Generator** - Generate answers grounded in YOUR data, not hallucinations
+
+### 6.3 Chat Interface
+- [ ] **API Endpoint** - `POST /assistant/chat` with conversation memory
+- [ ] **Web Chat Panel** - Slide-out chat in vault frontend
+- [ ] **Conversation History** - Store chat sessions in PostgreSQL
+- [ ] **Streaming Responses** - SSE for real-time typing effect
+
+### 6.4 Query Capabilities
+The assistant should handle:
+- "When did I last see [person]?" → Graph query + photo timestamps
+- "Show me photos from [place/event]" → Semantic + location search
+- "What was that restaurant in Berlin?" → OCR + location + time context
+- "Find my insurance documents" → Document category search
+- "Who was at [event]?" → Face recognition + event clustering
+- "What did I do last Christmas?" → Timeline + event detection
+
+### 6.5 Proactive Intelligence
+- [ ] **"On This Day"** - Surface memories from 1/2/3+ years ago
+- [ ] **Birthday Detection** - Parse dates from photos, remind about people's birthdays
+- [ ] **Smart Albums** - Auto-generate albums: "Best of 2024", "Summer Adventures", "Family Moments"
+- [ ] **Backup Reminders** - "You haven't uploaded photos in 2 weeks"
+- [ ] **Memory Highlights** - Weekly digest of interesting rediscovered photos
+
+---
+
+## 📱 PHASE 7: iOS Assistant Integration
+
+### 7.1 Chat in iOS App
+- [ ] Chat view in SwiftUI (matches web design)
+- [ ] Offline mode with local LLM fallback (stretch goal)
+- [ ] Voice input for queries
+
+### 7.2 Proactive Notifications
+- [ ] Push notifications for "On This Day" memories
+- [ ] Widget showing today's memory
+- [ ] Background sync + notification triggers
+
+### 7.3 Siri Integration (Stretch)
+- [ ] "Hey Siri, show me photos with Mom"
+- [ ] SiriKit intents for vault queries
+
+---
+
+## ✅ PHASE 8: Testing & Polish
+
+### 8.1 E2E Testing Current Flow
+- [ ] Upload photo via web → verify stored in MinIO
+- [ ] Verify face detection triggers → faces in DB
+- [ ] Verify embedding generation → vector in pgvector
+- [ ] Semantic search returns relevant results
+- [ ] Graph search by person/location works
+
+### 8.2 Assistant Testing
+- [ ] Test 10 common query patterns
+- [ ] Verify no hallucinations (answers grounded in vault data)
+- [ ] Response time < 3s for simple queries
+- [ ] Chat history persists across sessions
+
+---
+
+## 🚀 PHASE 9: Launch Prep
+
+### 9.1 App Store
+- [ ] App screenshots (real, not mockups)
+- [ ] App Store description + keywords
+- [ ] Privacy policy (emphasize local-first)
+- [ ] Submit to TestFlight → App Store
+
+### 9.2 Website
+- [ ] Download page with App Store badge
+- [ ] Demo video showing privacy features
+- [ ] "Why not Google Photos" comparison page
+
+### 9.3 Self-Hosting Docs
+- [ ] One-click Docker Compose setup
+- [ ] Hardware requirements (works on Raspberry Pi 5?)
+- [ ] Backup/restore guide
 
 <!-- MinIO Config Required:
      Set these env vars in vault-api container for image previews to work:
@@ -189,5 +296,5 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 18:05*
+*Last updated: 2026-01-31 18:25*
 *Focus: Photo Vault App ONLY - not the 0711 AI ecosystem*

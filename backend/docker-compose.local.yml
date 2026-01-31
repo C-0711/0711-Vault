@@ -84,6 +84,8 @@ services:
       MINIO_BUCKET: vault
       MINIO_SECURE: "true"
       OLLAMA_HOST: http://host.docker.internal:11434
+      EMBEDDING_MODEL: bge-m3:latest
+      VISION_MODEL: llama4:latest
       JWT_SECRET: dev_secret_key_change_in_production_0711vault
       CORS_ORIGINS: '["http://localhost:3000","http://localhost:3001","http://localhost:5173"]'
     extra_hosts:
@@ -111,6 +113,8 @@ services:
       DATABASE_URL: postgresql://vault:vault@postgres:5432/vault
       REDIS_URL: redis://redis:6379
       OLLAMA_HOST: http://host.docker.internal:11434
+      EMBEDDING_MODEL: bge-m3:latest
+      VISION_MODEL: llama4:latest
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin

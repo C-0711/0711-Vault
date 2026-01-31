@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     
     # Ollama
     OLLAMA_HOST: str = "http://localhost:11434"
-    EMBEDDING_MODEL: str = "nomic-embed-text"
-    VISION_MODEL: str = "llava:7b"
+    EMBEDDING_MODEL: str = "bge-m3:latest"
+    VISION_MODEL: str = "llama4:latest"
     
     # Auth
     JWT_SECRET: str = "change_this_to_a_real_secret_key"

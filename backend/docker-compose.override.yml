@@ -42,7 +42,9 @@ services:
     ports:
       - "9506:8000"
     environment:
-      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_HOST: http://host.docker.internal:11434
+      EMBEDDING_MODEL: bge-m3:latest
+      VISION_MODEL: llama4:latest
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -52,6 +54,8 @@ services:
       - "9507:8000"
     environment:
       OLLAMA_HOST: http://host.docker.internal:11434
+      EMBEDDING_MODEL: bge-m3:latest
+      VISION_MODEL: llama4:latest
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
