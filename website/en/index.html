@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>0711 Vault – Your Private, Encrypted Photo & Document Vault</title>
+  <meta name="description" content="Secure your photos, documents, and memories with end-to-end encryption. Only you have the key. Local AI that learns about YOU.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="0711 Vault – Your Photos, Your AI, Your Privacy">
+  <meta property="og:description" content="The only photo vault with a local AI assistant that never sends your data to the cloud.">
+  <meta property="og:image" content="https://vault.0711.io/og-image.png">
+  <meta property="og:url" content="https://vault.0711.io">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="0711 Vault – Your Photos, Your AI, Your Privacy">
+  <meta name="twitter:description" content="The only photo vault with a local AI assistant that never sends your data to the cloud.">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #09090b;
+      --bg-card: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --primary: #f97316;
+      --primary-dark: #ea580c;
+      --gradient: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fdba74 100%);
+    }
+    
+    html { scroll-behavior: smooth; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    
+    /* Nav */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 16px 0;
+      background: rgba(9, 9, 11, 0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: var(--gradient);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text { font-size: 24px; font-weight: 800; color: var(--text); }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a { color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .cta-btn {
+      background: var(--primary);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .cta-btn:hover { background: var(--primary-dark); }
+    
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding: 120px 0 80px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    .hero h1 span { color: var(--primary); }
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+    .hero-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--bg-card); border-color: var(--text-muted); }
+    
+    /* Badge */
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .badge-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
+    
+    /* Features */
+    .features { padding: 100px 0; }
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1.125rem;
+      margin-bottom: 64px;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--primary); }
+    .feature-icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .feature-card h3 { font-size: 1.25rem; margin-bottom: 12px; }
+    .feature-card p { color: var(--text-muted); }
+    
+    /* Comparison */
+    .comparison { padding: 100px 0; background: var(--bg-card); }
+    .comparison-table {
+      max-width: 800px;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 16px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th { color: var(--text-muted); font-weight: 500; }
+    .comparison-table td:first-child { font-weight: 500; }
+    .check { color: #22c55e; }
+    .cross { color: #ef4444; }
+    
+    /* Pricing */
+    .pricing { padding: 100px 0; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .price-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    .price-card.featured {
+      border-color: var(--primary);
+      position: relative;
+    }
+    .price-card.featured::before {
+      content: 'Most Popular';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: white;
+      padding: 4px 16px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .price-card h3 { font-size: 1.5rem; margin-bottom: 8px; }
+    .price { font-size: 3rem; font-weight: 800; }
+    .price span { font-size: 1rem; color: var(--text-muted); }
+    .price-features { list-style: none; margin: 24px 0; text-align: left; }
+    .price-features li { padding: 8px 0; color: var(--text-muted); }
+    .price-features li::before { content: '✓ '; color: var(--primary); }
+    
+    /* CTA */
+    .cta-section {
+      padding: 100px 0;
+      text-align: center;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-card) 100%);
+    }
+    .cta-section h2 { font-size: 2.5rem; margin-bottom: 16px; }
+    .cta-section p { color: var(--text-muted); margin-bottom: 32px; }
+    
+    /* Footer */
+    footer {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 24px; }
+    .footer-links a { color: var(--text-muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+    .copyright { color: var(--text-muted); font-size: 14px; }
+    
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero h1 { font-size: 2rem; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <div class="logo-icon">🔐</div>
+        <span class="logo-text">0711 Vault</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#comparison">Why Us</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/privacy.html">Privacy</a>
+      </div>
+      <a href="https://vault.0711.io" class="cta-btn">Open Vault</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="container">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        100% Local AI • No Cloud Required
+      </div>
+      <h1>Your Photos.<br>Your AI.<br><span>Your Privacy.</span></h1>
+      <p>The only photo vault with a local AI assistant that learns about YOUR life — without ever sending your data to external servers.</p>
+      <div class="hero-cta">
+        <a href="https://apps.apple.com/app/0711-vault" class="cta-btn">Download for iOS</a>
+        <a href="https://vault.0711.io" class="btn-secondary">Open Web App</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title">Everything Big Tech Promised,<br>Without the Surveillance</h2>
+      <p class="section-subtitle">Smart photo organization that actually respects your privacy.</p>
+      
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>Local AI Assistant</h3>
+          <p>Ask "When did I last see Mom?" and get answers from YOUR photos. AI runs 100% on your device.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👤</div>
+          <h3>Face Recognition</h3>
+          <p>Automatically organize photos by people. All processing happens on-device — no cloud upload required.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Semantic Search</h3>
+          <p>"Beach sunset photos from last summer" — search by description, not just dates and filenames.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📅</div>
+          <h3>On This Day</h3>
+          <p>Rediscover memories from 1, 2, 5 years ago. Your personal time machine.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📄</div>
+          <h3>Document Vault</h3>
+          <p>Store receipts, contracts, IDs securely. OCR makes everything searchable.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>E2E Encryption</h3>
+          <p>Military-grade AES-256 encryption. Not even we can see your photos. Because we never have access.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="comparison" id="comparison">
+    <div class="container">
+      <h2 class="section-title">Why Not Google Photos?</h2>
+      <p class="section-subtitle">The uncomfortable truth about "free" photo storage.</p>
+      
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>0711 Vault</th>
+            <th>Google Photos</th>
+            <th>iCloud</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Your data location</td>
+            <td class="check">Your device</td>
+            <td class="cross">Google servers</td>
+            <td class="cross">Apple servers</td>
+          </tr>
+          <tr>
+            <td>AI training on your photos</td>
+            <td class="check">Never</td>
+            <td class="cross">Yes (read ToS)</td>
+            <td class="cross">Possible</td>
+          </tr>
+          <tr>
+            <td>End-to-end encryption</td>
+            <td class="check">Always</td>
+            <td class="cross">No</td>
+            <td class="check">Optional</td>
+          </tr>
+          <tr>
+            <td>Local AI assistant</td>
+            <td class="check">Yes</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+          </tr>
+          <tr>
+            <td>Self-hosting option</td>
+            <td class="check">Yes</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+          </tr>
+          <tr>
+            <td>Monthly cost (100GB)</td>
+            <td class="check">$0 (self-host)</td>
+            <td>$2.99</td>
+            <td>$2.99</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <h2 class="section-title">Simple, Honest Pricing</h2>
+      <p class="section-subtitle">No hidden fees. No data mining. Just storage.</p>
+      
+      <div class="pricing-grid">
+        <div class="price-card">
+          <h3>Free</h3>
+          <div class="price">$0<span>/month</span></div>
+          <ul class="price-features">
+            <li>5 GB storage</li>
+            <li>E2E encryption</li>
+            <li>Face recognition</li>
+            <li>AI assistant</li>
+            <li>Web & mobile apps</li>
+          </ul>
+          <a href="https://vault.0711.io/register" class="cta-btn" style="width:100%;display:block;">Get Started</a>
+        </div>
+        
+        <div class="price-card featured">
+          <h3>Pro</h3>
+          <div class="price">$9<span>/month</span></div>
+          <ul class="price-features">
+            <li>100 GB storage</li>
+            <li>Everything in Free</li>
+            <li>Priority support</li>
+            <li>Advanced AI features</li>
+            <li>Share with family</li>
+          </ul>
+          <a href="https://vault.0711.io/register?plan=pro" class="cta-btn" style="width:100%;display:block;">Start Pro</a>
+        </div>
+        
+        <div class="price-card">
+          <h3>Self-Hosted</h3>
+          <div class="price">$0<span>/forever</span></div>
+          <ul class="price-features">
+            <li>Unlimited storage</li>
+            <li>Run on your hardware</li>
+            <li>Docker deployment</li>
+            <li>Full control</li>
+            <li>Community support</li>
+          </ul>
+          <a href="https://github.com/christoph-ui/0711-Vault" class="btn-secondary" style="width:100%;display:block;">View on GitHub</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Take Back Your Digital Memories</h2>
+      <p>Your photos are your life's story. Don't let Big Tech read it.</p>
+      <div class="hero-cta">
+        <a href="https://apps.apple.com/app/0711-vault" class="cta-btn">Download for iOS</a>
+        <a href="https://vault.0711.io/register" class="btn-secondary">Try Web App Free</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/imprint.html">Imprint</a>
+        <a href="https://github.com/christoph-ui/0711-Vault">GitHub</a>
+      </div>
+      <p class="copyright">© 2026 0711 Intelligence GmbH. Made in Stuttgart, Germany 🇩🇪</p>
+    </div>
+  </footer>
+</body>
+</html>

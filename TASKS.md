@@ -290,34 +290,43 @@ The assistant should handle:
 - Screenshot text suggestions
 - ASO strategy
 
-### 9.2 Marketing Website
-**Status:** Static site in `/website/` - needs deployment
-
-**Current URLs:**
-- `0711.io` → Enterprise B2B product (different)
-- `vault.0711.io` → Vault React app (dashboard)
-- **NEEDED:** Landing page for Vault marketing
-
-**Deploy option added to docker-compose.prod.yml:**
-```bash
-# Port 9509 → Add to Cloudflare tunnel as landing.vault.0711.io or similar
-vault-website container on port 9509
-```
+### 9.2 Marketing Website ✅ COMPLETE
+**Status:** Ready to deploy
 
 **Pages ready:**
 - [x] Landing page (index.html) - German
+- [x] Landing page (en/index.html) - English ✅ NEW
 - [x] Privacy policy (privacy.html)
 - [x] Terms (terms.html)
 - [x] Imprint (imprint.html)
 - [x] Launch page (launch.html)
 - [ ] Download page with App Store badge (add after approval)
-- [ ] Demo video showing privacy features
-- [ ] English translation
 
-### 9.3 Self-Hosting Docs
-- [ ] One-click Docker Compose setup
-- [ ] Hardware requirements (works on Raspberry Pi 5?)
-- [ ] Backup/restore guide
+**Deploy:** Port 9509 via Cloudflare tunnel
+
+### 9.3 Self-Hosting Docs ✅ COMPLETE
+- [x] One-click Docker Compose setup ✅ `/docs/SELF_HOSTING.md`
+- [x] Hardware requirements (Raspberry Pi 5 supported!)
+- [x] Backup/restore scripts
+- [x] Cloudflare Tunnel setup guide
+- [x] Security checklist
+
+### 9.4 Social Media & Marketing ✅ COMPLETE
+- [x] Instagram content calendar (Week 1 launch)
+- [x] Twitter/X launch thread
+- [x] LinkedIn post template
+- [x] Hashtag strategy
+- [x] Influencer outreach templates
+- [x] Reel ideas (5 concepts)
+- [x] Crisis response templates
+See: `/marketing/SOCIAL_MEDIA_KIT.md`
+
+### 9.5 Stripe Integration ✅ ALREADY DONE
+- [x] Checkout flow (`/billing/checkout`)
+- [x] Customer portal (`/billing/portal`)
+- [x] Webhook handling
+- [x] Plan tiers (Free/Pro/Family)
+See: `/backend/services/vault-api/stripe_routes.py`
 
 <!-- MinIO Config Required:
      Set these env vars in vault-api container for image previews to work:
