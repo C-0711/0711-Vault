@@ -256,20 +256,485 @@ The assistant should handle:
 
 ---
 
-## ✅ PHASE 8: Testing & Polish
+## 🧪 PHASE 8: PRE-LAUNCH TESTING CHECKLIST (100% Coverage)
 
-### 8.1 E2E Testing Current Flow
-- [ ] Upload photo via web → verify stored in MinIO
-- [ ] Verify face detection triggers → faces in DB
-- [ ] Verify embedding generation → vector in pgvector
-- [ ] Semantic search returns relevant results
-- [ ] Graph search by person/location works
+**Goal:** Test EVERY feature, EVERY link, EVERY flow before launch. Create test data. Verify everything works.
 
-### 8.2 Assistant Testing
-- [ ] Test 10 common query patterns
-- [ ] Verify no hallucinations (answers grounded in vault data)
-- [ ] Response time < 3s for simple queries
-- [ ] Chat history persists across sessions
+---
+
+### 8.1 Infrastructure Health Checks
+**Tested: 2026-02-01 04:08 UTC**
+
+- [x] `curl https://api-vault.0711.io/health` returns 200 ⚠️ status=degraded (postgres unknown)
+- [x] `curl https://vault.0711.io` returns 200 (frontend) ✅
+- [x] `curl https://storage.0711.io/minio/health/live` returns 200 (MinIO) ✅
+- [x] `curl https://get.0711.io` returns 200 (marketing site) ✅
+- [x] `curl https://get.0711.io/en/` returns 200 (English marketing) ✅
+- [ ] PostgreSQL responds: `docker exec vault-postgres pg_isready` ❌ **BLOCKER: DB unavailable**
+- [x] Redis responds: health check shows "healthy" ✅
+- [ ] Neo4j responds: `curl http://localhost:9502` (browser UI) — needs server access
+- [x] Ollama responds: `/ai/models` returns model list ✅
+- [x] Verify bge-m3 model loaded for embeddings ✅ (566.7M params, F16)
+- [x] Verify llama4 model loaded for vision/chat ✅ (108.6B params, Q4_K_M)
+
+**Additional models available:** qwen3:32b, gpt-oss:120b, mixtral, mistral, command-r, llama3
+
+**🚨 CRITICAL:** PostgreSQL connection failing! API returns "Database unavailable" on auth endpoints.
+Fix required before continuing 8.2-8.9 tests.
+
+---
+
+### 8.2 User Registration & Authentication
+**Test Account:** Create fresh test user `test@0711.io`
+
+- [ ] **Register new user** via web UI
+  - [ ] Email validation works
+  - [ ] Password strength indicator shows
+  - [ ] Registration succeeds → redirect to dashboard
+  - [ ] User created in PostgreSQL `users` table
+  - [ ] Salt generated and stored
+  - [ ] Encrypted master key stored
+- [ ] **Login existing user**
+  - [ ] Correct credentials → JWT token returned
+  - [ ] Wrong password → 401 error
+  - [ ] Wrong email → 401 error
+  - [ ] Token stored in localStorage/cookie
+- [ ] **Logout**
+  - [ ] Token invalidated
+  - [ ] Redirect to login page
+- [ ] **Session persistence**
+  - [ ] Refresh page → still logged in
+  - [ ] Token expiry → forced re-login
+- [ ] **Password reset** (if implemented)
+  - [ ] Request reset email
+  - [ ] Reset link works
+  - [ ] New password accepted
+
+---
+
+### 8.3 Photo Upload & Storage
+**Test Data:** Upload 10+ photos with various properties
+
+- [ ] **Single photo upload**
+  - [ ] Select file → upload progress shows
+  - [ ] Upload completes → photo appears in gallery
+  - [ ] File stored in MinIO bucket
+  - [ ] Metadata stored in PostgreSQL `vault_items`
+  - [ ] Presigned URL works for download
+- [ ] **Bulk photo upload** (5+ photos)
+  - [ ] All photos upload successfully
+  - [ ] Progress indicator accurate
+  - [ ] All appear in gallery
+- [ ] **Photo with EXIF data**
+  - [ ] Date extracted from EXIF
+  - [ ] Location extracted (GPS coordinates)
+  - [ ] Camera info extracted
+- [ ] **Photo without EXIF** (screenshot)
+  - [ ] Defaults to upload date
+  - [ ] No location → handled gracefully
+- [ ] **Large photo** (>10MB)
+  - [ ] Uploads without timeout
+  - [ ] Thumbnail generated
+- [ ] **Photo formats**
+  - [ ] JPG uploads ✓
+  - [ ] PNG uploads ✓
+  - [ ] HEIC uploads ✓ (iOS photos)
+  - [ ] WebP uploads ✓
+- [ ] **Photo preview**
+  - [ ] Click photo → full-size preview loads
+  - [ ] Presigned URL from storage.0711.io works
+  - [ ] Zoom/pan works
+- [ ] **Photo deletion**
+  - [ ] Delete button works
+  - [ ] Confirmation dialog appears
+  - [ ] Photo removed from gallery
+  - [ ] File removed from MinIO
+  - [ ] Metadata removed from PostgreSQL
+
+---
+
+### 8.4 Document Upload & OCR
+**Test Data:** Upload receipts, contracts, IDs
+
+- [ ] **PDF upload**
+  - [ ] Upload succeeds
+  - [ ] OCR extracts text
+  - [ ] Text stored for search
+- [ ] **Image document** (photo of receipt)
+  - [ ] OCR runs on image
+  - [ ] Extracted text searchable
+- [ ] **Multi-page PDF**
+  - [ ] All pages processed
+  - [ ] Text from all pages searchable
+- [ ] **Document categories**
+  - [ ] Can tag as: Receipt, Contract, ID, Medical, Tax
+  - [ ] Category filter works
+- [ ] **Document preview**
+  - [ ] PDF renders in browser
+  - [ ] Image documents display
+
+---
+
+### 8.5 Face Detection & Recognition
+**Test Data:** Upload 20+ photos with faces (same people appearing multiple times)
+
+- [ ] **Face detection triggers**
+  - [ ] Upload photo with face → face detected
+  - [ ] Face coordinates stored in DB
+  - [ ] Face thumbnail generated
+- [ ] **Multiple faces in one photo**
+  - [ ] All faces detected
+  - [ ] Each face has separate entry
+- [ ] **Face clustering**
+  - [ ] Same person in multiple photos → grouped
+  - [ ] Clusters appear in "People" section
+- [ ] **Face labeling**
+  - [ ] Can name a face cluster ("Mom", "Dad")
+  - [ ] Name encrypted before storage
+  - [ ] Label persists across sessions
+- [ ] **Face search**
+  - [ ] Click person → all their photos shown
+  - [ ] "Photos with Mom" search works
+- [ ] **No faces photo**
+  - [ ] Landscape photo → no faces detected (correct)
+  - [ ] No error thrown
+- [ ] **Profile vs frontal face**
+  - [ ] Profile faces detected
+  - [ ] Partially obscured faces handled
+
+---
+
+### 8.6 Embedding & Vector Search
+- [ ] **Embedding generation**
+  - [ ] Photo upload → embedding created
+  - [ ] Embedding stored in pgvector
+  - [ ] bge-m3 model used (not nomic)
+- [ ] **Semantic search**
+  - [ ] "beach sunset" → returns beach photos
+  - [ ] "birthday party" → returns party photos
+  - [ ] "dog" → returns pet photos
+  - [ ] "red car" → returns car photos
+- [ ] **Search with no results**
+  - [ ] "purple elephant" → empty result (not error)
+  - [ ] Graceful "no results" message
+- [ ] **Search performance**
+  - [ ] <500ms for 1000 photos
+  - [ ] <2s for 10000 photos
+
+---
+
+### 8.7 Graph Database (Neo4j)
+- [ ] **Person nodes created**
+  - [ ] Each face cluster → Person node
+  - [ ] Person has: id, name (encrypted), first_seen, last_seen
+- [ ] **Photo nodes created**
+  - [ ] Each vault item → node in Neo4j
+  - [ ] Has: id, captured_at, location
+- [ ] **Relationships created**
+  - [ ] Person -[APPEARS_IN]-> Photo
+  - [ ] Photo -[TAKEN_AT]-> Location
+- [ ] **Graph queries work**
+  - [ ] "Who appears together?" → correct groupings
+  - [ ] "Photos at location X" → correct results
+
+---
+
+### 8.8 AI Assistant (Chat)
+**Test with real vault data uploaded**
+
+- [ ] **Basic chat**
+  - [ ] Send message → response received
+  - [ ] Response grounded in vault data
+  - [ ] No hallucinations (doesn't make up data)
+- [ ] **Query: "When did I last see [person]?"**
+  - [ ] Returns date from photo metadata
+  - [ ] Shows relevant photos as sources
+- [ ] **Query: "Show me photos from [location]"**
+  - [ ] Semantic search finds relevant photos
+  - [ ] Sources listed correctly
+- [ ] **Query: "Find my [document type]"**
+  - [ ] Searches documents
+  - [ ] Returns matching items
+- [ ] **Query about non-existent data**
+  - [ ] "When did I visit Mars?" → "I don't have that information"
+  - [ ] Doesn't hallucinate
+- [ ] **Conversation context**
+  - [ ] Follow-up questions work
+  - [ ] "Show me more" → continues previous query
+  - [ ] Context preserved across messages
+- [ ] **Streaming response**
+  - [ ] `/assistant/chat/stream` → tokens stream
+  - [ ] UI updates in real-time
+- [ ] **Response time**
+  - [ ] Simple query <3s
+  - [ ] Complex query <10s
+- [ ] **Error handling**
+  - [ ] Ollama down → graceful error message
+  - [ ] Empty vault → "Upload some photos first"
+
+---
+
+### 8.9 Memory Features
+- [ ] **On This Day**
+  - [ ] `GET /assistant/memories/on-this-day` returns photos
+  - [ ] Shows photos from 1, 2, 3+ years ago
+  - [ ] Empty if no old photos → graceful message
+- [ ] **Weekly Highlights**
+  - [ ] `GET /assistant/memories/highlights?days=7` works
+  - [ ] Returns recent interesting photos
+- [ ] **Person Timeline**
+  - [ ] `GET /assistant/memories/people/{id}` returns all photos
+  - [ ] Sorted by date
+  - [ ] Person metadata included
+
+---
+
+### 8.10 Web Frontend Testing
+**Browser: Chrome, Safari, Firefox**
+
+- [ ] **Homepage/Dashboard**
+  - [ ] Stats load (photo count, storage used)
+  - [ ] Recent photos display
+  - [ ] Navigation works
+- [ ] **Photos page**
+  - [ ] Grid view loads
+  - [ ] Infinite scroll works
+  - [ ] Date grouping correct
+  - [ ] Click photo → detail view
+- [ ] **Documents page**
+  - [ ] List view loads
+  - [ ] Category filters work
+  - [ ] Search works
+- [ ] **People page**
+  - [ ] Face clusters display
+  - [ ] Click person → their photos
+  - [ ] Can rename person
+- [ ] **Search page**
+  - [ ] Search bar works
+  - [ ] Results display correctly
+  - [ ] Filters work
+- [ ] **Assistant page (`/assistant`)**
+  - [ ] Chat UI loads
+  - [ ] Can send messages
+  - [ ] Responses display
+  - [ ] Sources clickable
+- [ ] **Settings page**
+  - [ ] Account info displays
+  - [ ] Can change settings
+  - [ ] Logout works
+- [ ] **Responsive design**
+  - [ ] Desktop (1920px) ✓
+  - [ ] Tablet (768px) ✓
+  - [ ] Mobile (375px) ✓
+- [ ] **Dark mode**
+  - [ ] Toggle works
+  - [ ] All elements visible
+
+---
+
+### 8.11 Mobile App Testing (React Native)
+**Device: iPhone simulator + physical device**
+
+- [ ] **App launch**
+  - [ ] Splash screen shows
+  - [ ] Face ID prompt appears
+  - [ ] Successful auth → main screen
+- [ ] **Tab navigation**
+  - [ ] Chat tab works
+  - [ ] Vault tab works
+  - [ ] Scan tab works
+  - [ ] Settings tab works
+- [ ] **AI Assistant (purple button)**
+  - [ ] Button visible in Chat header
+  - [ ] Tap → AssistantScreen opens
+  - [ ] Suggested prompts display
+  - [ ] Can send message
+  - [ ] Response displays
+  - [ ] Sources show
+  - [ ] Back navigation works
+- [ ] **Vault browsing**
+  - [ ] Photos load
+  - [ ] Pull to refresh works
+  - [ ] Tap photo → detail view
+- [ ] **Document scan**
+  - [ ] Camera opens
+  - [ ] Can capture document
+  - [ ] OCR runs
+  - [ ] Saved to vault
+- [ ] **Settings**
+  - [ ] Account info shows
+  - [ ] API endpoint configurable
+  - [ ] Logout works
+- [ ] **Offline mode**
+  - [ ] Cached data available
+  - [ ] Graceful error when no network
+
+---
+
+### 8.12 Marketing Website Testing
+**Tested: 2026-02-01 04:08 UTC**
+
+- [x] **https://get.0711.io** (German) — 200 OK ✅
+  - [ ] Page loads <2s
+  - [ ] Hero section displays
+  - [ ] Features section visible
+  - [ ] Pricing table renders
+  - [ ] All images load
+  - [ ] No broken links
+- [x] **https://get.0711.io/en/** (English) — 200 OK ✅
+  - [ ] English text displays
+  - [ ] Same features as German
+- [ ] **Navigation links**
+  - [ ] #features scrolls correctly
+  - [ ] #pricing scrolls correctly
+  - [ ] #privacy scrolls correctly
+- [ ] **External links**
+  - [ ] App Store link (placeholder until live)
+  - [ ] GitHub link works
+- [x] **Legal pages** — All 200 OK ✅
+  - [x] /privacy.html loads ✅
+  - [x] /terms.html loads ✅
+  - [x] /imprint.html loads ✅
+- [x] **https://get.0711.io/launch.html** — 200 OK ✅
+- [ ] **Mobile responsive**
+  - [ ] Hamburger menu works
+  - [ ] All sections readable
+- [ ] **Performance**
+  - [ ] Lighthouse score >90
+  - [ ] First paint <1.5s
+
+---
+
+### 8.13 API Endpoint Testing
+**Tested: 2026-02-01 04:08 UTC**
+
+| Endpoint | Method | Test | Result |
+|----------|--------|------|--------|
+| `/` | GET | Returns service info | ✅ 200 |
+| `/health` | GET | Returns status | ✅ 200 (degraded - pg unknown) |
+| `/ai/models` | GET | Lists Ollama models | ✅ 200 (8 models) |
+| `/billing/plans` | GET | Returns pricing tiers | ✅ 200 (Free/Pro/Family) |
+| `/auth/register` | POST | Creates user | ❌ DB unavailable |
+| `/auth/login` | POST | Returns JWT | ❌ DB unavailable |
+| `/auth/logout` | POST | Invalidates token | ⏳ Blocked (no token) |
+| `/vault/items` | GET | Lists items | ✅ 401 (auth required) |
+| `/vault/items` | POST | Creates item | ⏳ Blocked (no token) |
+| `/vault/items/{id}` | GET | Gets item | ⏳ Blocked (no token) |
+| `/vault/items/{id}` | DELETE | Deletes item | ⏳ Blocked (no token) |
+| `/vault/stats` | GET | Returns stats | ✅ 401 (auth required) |
+| `/search/semantic` | POST | Vector search | ⏳ Blocked (no token) |
+| `/faces/clusters` | GET | Lists faces | ✅ 401 (auth required) |
+| `/faces/train` | POST | Labels face | ⏳ Blocked (no token) |
+| `/assistant/chat` | POST | Chat works | ✅ 405 GET→POST (auth req) |
+| `/assistant/chat/stream` | POST | SSE streams | ⏳ Blocked (no token) |
+| `/assistant/memories/on-this-day` | GET | Memories work | ⏳ Blocked (no token) |
+| `/assistant/memories/highlights` | GET | Highlights work | ⏳ Blocked (no token) |
+| `/billing/checkout` | POST | Creates session | ⏳ Blocked (no token) |
+| `/billing/portal` | POST | Opens portal | ⏳ Blocked (no token) |
+
+**⚠️ DB BLOCKER:** Cannot test authenticated endpoints until PostgreSQL is fixed.
+
+---
+
+### 8.14 Security Testing
+**Tested: 2026-02-01 04:08 UTC**
+
+- [x] **Authentication**
+  - [x] No access without token → 401 ✅ (vault/items, vault/stats, faces/clusters all return 401)
+  - [ ] Expired token → 401
+  - [ ] Invalid token → 401
+- [ ] **Authorization**
+  - [ ] User A can't access User B's photos
+  - [ ] Admin endpoints protected
+- [ ] **Input validation**
+  - [ ] SQL injection attempt → blocked
+  - [ ] XSS attempt → sanitized
+  - [ ] Path traversal → blocked
+- [ ] **HTTPS**
+  - [ ] All URLs use HTTPS
+  - [ ] HTTP redirects to HTTPS
+  - [ ] Valid SSL certificate
+- [ ] **Headers**
+  - [ ] CORS configured correctly
+  - [ ] CSP headers present
+  - [ ] X-Frame-Options set
+- [ ] **Secrets**
+  - [ ] No hardcoded secrets in code
+  - [ ] .env not committed
+  - [ ] API keys not exposed
+
+---
+
+### 8.15 Performance Testing
+- [ ] **API response times**
+  - [ ] `/health` <100ms
+  - [ ] `/vault/items` (100 items) <500ms
+  - [ ] `/search/semantic` <1s
+  - [ ] `/assistant/chat` <5s
+- [ ] **Upload speeds**
+  - [ ] 5MB photo <10s
+  - [ ] 50MB video <60s
+- [ ] **Concurrent users**
+  - [ ] 10 simultaneous users → no errors
+  - [ ] 50 simultaneous users → acceptable latency
+- [ ] **Memory usage**
+  - [ ] vault-api <512MB
+  - [ ] ai-service <1GB (excluding models)
+- [ ] **Database performance**
+  - [ ] 10k photos → queries <1s
+  - [ ] Indexes exist on frequently queried columns
+
+---
+
+### 8.16 Test Data Creation Script
+Run this to populate test data:
+
+```bash
+# Create test user
+curl -X POST https://api-vault.0711.io/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@0711.io","password":"TestPassword123!"}'
+
+# Login and get token
+TOKEN=$(curl -s -X POST https://api-vault.0711.io/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@0711.io","password":"TestPassword123!"}' | jq -r '.access_token')
+
+# Upload test photos (from local directory)
+for f in ~/test-photos/*.jpg; do
+  curl -X POST https://api-vault.0711.io/vault/items \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "file=@$f"
+done
+
+# Test assistant
+curl -X POST https://api-vault.0711.io/assistant/chat \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What photos do I have?"}'
+```
+
+---
+
+### 8.17 Final Sign-Off Checklist
+
+**Before launch, confirm ALL of these:**
+
+- [ ] All 8.1-8.16 sections completed with no failures
+- [ ] Test user can complete full journey: Register → Upload → Search → Chat
+- [ ] No console errors in browser
+- [ ] No errors in docker logs
+- [ ] Backup tested: can restore from backup
+- [ ] Monitoring in place: errors will be noticed
+- [ ] Support email configured
+- [ ] Privacy policy reviewed by lawyer
+- [ ] App Store screenshots taken
+- [ ] Social media posts scheduled
+
+**Sign-off:**
+- [ ] **QA Lead:** _________________ Date: _________
+- [ ] **Dev Lead:** _________________ Date: _________
+- [ ] **Product Owner:** _________________ Date: _________
 
 ---
 
@@ -413,5 +878,5 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 22:30*
+*Last updated: 2026-01-31 23:15*
 *Focus: Photo Vault App ONLY - fully independent deployment*

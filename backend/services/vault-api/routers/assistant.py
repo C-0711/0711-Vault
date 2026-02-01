@@ -15,6 +15,7 @@ import httpx
 
 from config import settings
 from database import get_db, get_neo4j, get_ollama, get_redis
+from auth import get_current_user
 
 router = APIRouter()
 
@@ -194,7 +195,7 @@ JSON response:"""
 # ===========================================
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, user_id: str = None, db=Depends(get_db)):
+async def chat(request: ChatRequest, user_id: str = Depends(get_current_user), db=Depends(get_db)):
     """
     Chat with your vault's AI assistant.
     
@@ -205,9 +206,6 @@ async def chat(request: ChatRequest, user_id: str = None, db=Depends(get_db)):
     - "Who was at the Christmas party last year?"
     - "What restaurants have I been to?"
     """
-    if not user_id:
-        # In production, extract from JWT
-        raise HTTPException(status_code=401, detail="Authentication required")
     
     ollama = get_ollama()
     neo4j = get_neo4j()
@@ -304,13 +302,11 @@ You are running 100% locally - their data never leaves their device. You are THE
 
 
 @router.post("/chat/stream")
-async def chat_stream(request: ChatRequest, user_id: str = None, db=Depends(get_db)):
+async def chat_stream(request: ChatRequest, user_id: str = Depends(get_current_user), db=Depends(get_db)):
     """
     Streaming chat endpoint for real-time responses.
     Returns Server-Sent Events (SSE).
     """
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     
     ollama = get_ollama()
     neo4j = get_neo4j()
@@ -362,13 +358,11 @@ Be warm, helpful, and honest when you don't have information."""
 # ===========================================
 
 @router.get("/memories/on-this-day")
-async def on_this_day(user_id: str = None, db=Depends(get_db)):
+async def on_this_day(user_id: str = Depends(get_current_user), db=Depends(get_db)):
     """
     Get photos from this day in previous years.
     The "On This Day" feature that makes people smile.
     """
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     
     today = datetime.utcnow()
     memories = []
@@ -415,13 +409,11 @@ async def on_this_day(user_id: str = None, db=Depends(get_db)):
 
 
 @router.get("/memories/highlights")
-async def weekly_highlights(user_id: str = None, days: int = 7, db=Depends(get_db)):
+async def weekly_highlights(user_id: str = Depends(get_current_user), days: int = 7, db=Depends(get_db)):
     """
     Get photo highlights from the past week.
     Uses AI to select the best/most interesting photos.
     """
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     
     # Get recent photos
     since = datetime.utcnow() - timedelta(days=days)
@@ -463,13 +455,11 @@ async def weekly_highlights(user_id: str = None, days: int = 7, db=Depends(get_d
 
 
 @router.get("/memories/people/{person_id}")
-async def person_memories(person_id: str, user_id: str = None, db=Depends(get_db)):
+async def person_memories(person_id: str, user_id: str = Depends(get_current_user), db=Depends(get_db)):
     """
     Get all memories featuring a specific person.
     Timeline of photos with this person.
     """
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     
     neo4j = get_neo4j()
     if not neo4j:
@@ -517,7 +507,7 @@ async def person_memories(person_id: str, user_id: str = None, db=Depends(get_db
 async def generate_smart_album(
     album_type: str,  # trip, event, best_of_year, person_highlights
     params: Dict[str, Any] = {},
-    user_id: str = None,
+    user_id: str = Depends(get_current_user),
     db=Depends(get_db)
 ):
     """
@@ -529,8 +519,6 @@ async def generate_smart_album(
     - best_of_year: Best photos from a year
     - person_highlights: Best photos featuring a person
     """
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     
     # TODO: Implement smart album generation
     # This would:
