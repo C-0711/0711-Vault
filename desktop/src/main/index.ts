@@ -6,6 +6,7 @@
 import { app, BrowserWindow, shell, nativeTheme, Menu, Tray } from 'electron';
 import path from 'path';
 import { createMenu } from './menu';
+import { setupIpcHandlers } from './ipc';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -71,6 +72,9 @@ function createTray(): void {
 
 // App lifecycle
 app.whenReady().then(() => {
+  // Set up IPC handlers
+  setupIpcHandlers();
+  
   // Set up menu
   Menu.setApplicationMenu(createMenu());
   
