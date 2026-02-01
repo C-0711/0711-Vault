@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
+from sqlalchemy import text
 import json
 import asyncio
 import httpx
@@ -90,13 +91,13 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
     
     # 2. Semantic search for relevant items
     try:
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 vi.id,
                 vi.item_type,
                 vi.encrypted_metadata,
                 vi.captured_at,
-                vi.storage_path,
+                vi.storage_key,
                 1 - (e.embedding <=> :query_embedding::vector) as score
             FROM embeddings e
             JOIN vault_items vi ON e.vault_item_id = vi.id
@@ -104,7 +105,7 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
               AND vi.deleted_at IS NULL
             ORDER BY e.embedding <=> :query_embedding::vector
             LIMIT 10
-        """, {
+        """), {
             "query_embedding": str(query_embedding),
             "user_id": user_id
         })
@@ -116,13 +117,13 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
                     "id": str(item.id),
                     "captured_at": item.captured_at.isoformat() if item.captured_at else None,
                     "score": item.score,
-                    "path": item.storage_path
+                    "path": item.storage_key
                 })
             elif item.item_type == 'document':
                 context["documents"].append({
                     "id": str(item.id),
                     "score": item.score,
-                    "path": item.storage_path
+                    "path": item.storage_key
                 })
     except Exception as e:
         print(f"Semantic search error: {e}")
@@ -373,8 +374,8 @@ async def on_this_day(user_id: str = Depends(get_current_user), db=Depends(get_d
         start = target_date.replace(hour=0, minute=0, second=0)
         end = target_date.replace(hour=23, minute=59, second=59)
         
-        result = await db.execute("""
-            SELECT id, storage_path, captured_at, encrypted_metadata
+        result = await db.execute(text("""
+            SELECT id, storage_key, captured_at, encrypted_metadata
             FROM vault_items
             WHERE user_id = :user_id
               AND item_type = 'photo'
@@ -382,7 +383,7 @@ async def on_this_day(user_id: str = Depends(get_current_user), db=Depends(get_d
               AND deleted_at IS NULL
             ORDER BY captured_at
             LIMIT 10
-        """, {
+        """), {
             "user_id": user_id,
             "start": start,
             "end": end
@@ -396,7 +397,7 @@ async def on_this_day(user_id: str = Depends(get_current_user), db=Depends(get_d
                 "photos": [
                     {
                         "id": str(p.id),
-                        "path": p.storage_path,
+                        "path": p.storage_key,
                         "captured_at": p.captured_at.isoformat()
                     }
                     for p in photos
@@ -418,8 +419,8 @@ async def weekly_highlights(user_id: str = Depends(get_current_user), days: int 
     # Get recent photos
     since = datetime.utcnow() - timedelta(days=days)
     
-    result = await db.execute("""
-        SELECT id, storage_path, captured_at, encrypted_metadata
+    result = await db.execute(text("""
+        SELECT id, storage_key, captured_at, encrypted_metadata
         FROM vault_items
         WHERE user_id = :user_id
           AND item_type = 'photo'
@@ -427,7 +428,7 @@ async def weekly_highlights(user_id: str = Depends(get_current_user), days: int 
           AND deleted_at IS NULL
         ORDER BY created_at DESC
         LIMIT 50
-    """, {
+    """), {
         "user_id": user_id,
         "since": since
     })
@@ -446,7 +447,7 @@ async def weekly_highlights(user_id: str = Depends(get_current_user), days: int 
         "highlights": [
             {
                 "id": str(p.id),
-                "path": p.storage_path,
+                "path": p.storage_key,
                 "captured_at": p.captured_at.isoformat() if p.captured_at else None
             }
             for p in photos[:10]
@@ -480,7 +481,7 @@ async def person_memories(person_id: str, user_id: str = Depends(get_current_use
         result = await session.run("""
             MATCH (p:Person {id: $person_id})-[:APPEARS_IN]->(i:VaultItem)
             WHERE i.user_id = $user_id
-            RETURN i.id as id, i.captured_at as date, i.storage_path as path
+            RETURN i.id as id, i.captured_at as date, i.storage_key as path
             ORDER BY i.captured_at DESC
             LIMIT 100
         """, person_id=person_id, user_id=user_id)
