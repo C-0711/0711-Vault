@@ -75,6 +75,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quit: () => {
     ipcRenderer.send('quit-app');
   },
+  
+  // Import / Migration
+  scanFolder: (folderPath: string) => {
+    return ipcRenderer.invoke('scan-folder', folderPath);
+  },
+  
+  scanApplePhotos: () => {
+    return ipcRenderer.invoke('scan-apple-photos');
+  },
+  
+  readFile: (filePath: string) => {
+    return ipcRenderer.invoke('read-file', filePath);
+  },
+  
+  getExif: (filePath: string) => {
+    return ipcRenderer.invoke('get-exif', filePath);
+  },
 });
 
 // Type definitions for TypeScript
@@ -96,6 +113,10 @@ declare global {
       getAppVersion: () => Promise<string>;
       openExternal: (url: string) => Promise<void>;
       quit: () => void;
+      scanFolder: (folderPath: string) => Promise<{ photos: Array<{ path: string; filename: string; size: number; date: string | null }> }>;
+      scanApplePhotos: () => Promise<{ photos: Array<{ path: string; filename: string; size: number; date: string | null }>; error?: string }>;
+      readFile: (filePath: string) => Promise<Buffer | null>;
+      getExif: (filePath: string) => Promise<any>;
     };
   }
 }

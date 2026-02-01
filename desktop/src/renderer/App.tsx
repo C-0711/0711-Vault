@@ -16,7 +16,7 @@ import Documents from './views/Documents';
 import Search from './views/Search';
 import Assistant from './views/Assistant';
 import Settings from './views/Settings';
-import Migration from './views/Migration';
+import Import from './views/Import';
 
 // Layout
 import MainLayout from './components/MainLayout';
@@ -80,7 +80,7 @@ function AppRoutes() {
         <Route path="/search" element={<Search />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/settings/*" element={<Settings />} />
-        <Route path="/migration/*" element={<Migration />} />
+        <Route path="/import" element={<Import />} />
       </Route>
     </Routes>
   );

@@ -13,6 +13,7 @@ import {
   Search,
   MessageSquare,
   Settings,
+  Download,
 } from 'lucide-react';
 
 const navItems = [
@@ -55,8 +56,21 @@ export default function MainLayout() {
           ))}
         </nav>
 
-        {/* Settings at bottom */}
-        <div className="p-3 border-t border-border">
+        {/* Import & Settings at bottom */}
+        <div className="p-3 border-t border-border space-y-1">
+          <NavLink
+            to="/import"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`
+            }
+          >
+            <Download className="w-5 h-5" />
+            <span>Import Photos</span>
+          </NavLink>
           <NavLink
             to="/settings"
             className={({ isActive }) =>
