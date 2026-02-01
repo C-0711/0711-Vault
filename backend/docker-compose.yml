@@ -157,6 +157,24 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Background worker for processing queue
+  worker:
+    build: ./services/vault-api
+    container_name: 0711-worker
+    command: python worker.py
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vault}:${POSTGRES_PASSWORD:-vault}@postgres:5432/${POSTGRES_DB:-vault}
+      AI_SERVICE_URL: http://ai-service:8001
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    restart: unless-stopped
+
   # ===========================================
   # FRONTEND
   # ===========================================

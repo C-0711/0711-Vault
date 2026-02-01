@@ -74,6 +74,16 @@ services:
     ports:
       - "9508:80"
 
+  # Background worker for processing queue
+  worker:
+    container_name: vault-worker
+    environment:
+      DATABASE_URL: postgresql://vault:vault@postgres:5432/vault
+      AI_SERVICE_URL: http://ai-service:8001
+      MINIO_ENDPOINT: minio:9000
+    networks:
+      - default
+
   # Marketing website (static)
   website:
     build: ../website
