@@ -3,7 +3,14 @@
  */
 
 import { ipcMain, dialog, shell, app, systemPreferences, Notification } from 'electron';
-import * as keytar from 'keytar';
+
+// Dynamic import for native module
+let keytar: typeof import('keytar') | null = null;
+try {
+  keytar = require('keytar');
+} catch (e) {
+  console.warn('keytar not available, secure storage disabled');
+}
 
 const SERVICE_NAME = '0711-vault';
 
@@ -19,6 +26,10 @@ export function setupIpcHandlers() {
 
   // Keychain (secure storage)
   ipcMain.handle('keychain-set', async (_, key: string, value: string) => {
+    if (!keytar) {
+      // Fallback to less secure storage
+      return;
+    }
     try {
       await keytar.setPassword(SERVICE_NAME, key, value);
     } catch (error) {
@@ -27,6 +38,9 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('keychain-get', async (_, key: string) => {
+    if (!keytar) {
+      return null;
+    }
     try {
       return await keytar.getPassword(SERVICE_NAME, key);
     } catch (error) {
@@ -36,6 +50,9 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('keychain-delete', async (_, key: string) => {
+    if (!keytar) {
+      return;
+    }
     try {
       await keytar.deletePassword(SERVICE_NAME, key);
     } catch (error) {
