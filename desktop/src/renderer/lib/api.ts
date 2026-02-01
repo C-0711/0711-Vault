@@ -108,6 +108,39 @@ class ApiClient {
   async getSubscription() {
     return this.get('/billing/subscription');
   }
+
+  // Albums
+  async getAlbums() {
+    return this.get('/vault/albums');
+  }
+
+  async getAlbum(id: string) {
+    return this.get(`/vault/albums/${id}`);
+  }
+
+  async createAlbum(data: { name: string; encrypted_name?: string; description?: string }) {
+    return this.post('/vault/albums', data);
+  }
+
+  async updateAlbum(id: string, data: { name?: string; encrypted_name?: string; description?: string }) {
+    return this.put(`/vault/albums/${id}`, data);
+  }
+
+  async deleteAlbum(id: string) {
+    return this.delete(`/vault/albums/${id}`);
+  }
+
+  async getAlbumItems(id: string) {
+    return this.get(`/vault/albums/${id}/items`);
+  }
+
+  async addToAlbum(albumId: string, itemIds: string[]) {
+    return this.post(`/vault/albums/${albumId}/items`, { item_ids: itemIds });
+  }
+
+  async removeFromAlbum(albumId: string, itemId: string) {
+    return this.delete(`/vault/albums/${albumId}/items/${itemId}`);
+  }
 }
 
 export const api = new ApiClient();

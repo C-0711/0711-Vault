@@ -13,7 +13,7 @@ const config: ForgeConfig = {
     executableName: '0711-vault',
     appBundleId: 'io.0711.vault',
     appCategoryType: 'public.app-category.photography',
-    // icon: 'assets/icon',  // Add when icon available
+    icon: 'assets/icon',
     // macOS specific
     darwinDarkModeSupport: true,
     // Code signing - uncomment when certificates are available

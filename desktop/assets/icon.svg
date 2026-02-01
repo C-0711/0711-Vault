@@ -1,0 +1,33 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#6366F1"/>
+    </linearGradient>
+    <linearGradient id="shineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.3)"/>
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#bgGradient)"/>
+  
+  <!-- Subtle shine -->
+  <rect x="64" y="64" width="896" height="448" rx="200" fill="url(#shineGradient)"/>
+  
+  <!-- Vault door outline -->
+  <rect x="262" y="232" width="500" height="560" rx="40" stroke="white" stroke-width="40" fill="none"/>
+  
+  <!-- Vault handle/dial -->
+  <circle cx="512" cy="480" r="120" stroke="white" stroke-width="36" fill="none"/>
+  <circle cx="512" cy="480" r="50" fill="white"/>
+  
+  <!-- Lock keyhole -->
+  <rect x="487" y="620" width="50" height="100" rx="25" fill="white"/>
+  <circle cx="512" cy="620" r="35" fill="white"/>
+  
+  <!-- 0711 text -->
+  <text x="512" y="870" font-family="SF Pro Display, -apple-system, sans-serif" font-size="100" font-weight="700" fill="white" text-anchor="middle">0711</text>
+</svg>
