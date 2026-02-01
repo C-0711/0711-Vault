@@ -13,17 +13,18 @@ const config: ForgeConfig = {
     executableName: '0711-vault',
     appBundleId: 'io.0711.vault',
     appCategoryType: 'public.app-category.photography',
-    icon: 'assets/icon',
+    // icon: 'assets/icon',  // Add when icon available
     // macOS specific
     darwinDarkModeSupport: true,
-    osxSign: {
-      identity: 'Developer ID Application',
-    },
-    osxNotarize: {
-      appleId: process.env.APPLE_ID || '',
-      appleIdPassword: process.env.APPLE_ID_PASSWORD || '',
-      teamId: process.env.APPLE_TEAM_ID || '',
-    },
+    // Code signing - uncomment when certificates are available
+    // osxSign: {
+    //   identity: 'Developer ID Application',
+    // },
+    // osxNotarize: {
+    //   appleId: process.env.APPLE_ID || '',
+    //   appleIdPassword: process.env.APPLE_ID_PASSWORD || '',
+    //   teamId: process.env.APPLE_TEAM_ID || '',
+    // },
   },
   rebuildConfig: {},
   makers: [
@@ -33,8 +34,8 @@ const config: ForgeConfig = {
     new MakerZIP({}, ['darwin']),
     new MakerDMG({
       name: '0711-Vault',
-      icon: 'assets/icon.icns',
-      background: 'assets/dmg-background.png',
+      // icon: 'assets/icon.icns',  // Add when icon available
+      // background: 'assets/dmg-background.png',  // Add when background available
       contents: [
         { x: 130, y: 220, type: 'file', path: '' }, // App
         { x: 410, y: 220, type: 'link', path: '/Applications' },
