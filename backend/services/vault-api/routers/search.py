@@ -5,6 +5,7 @@ Search routes - Semantic and Graph search
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
+from sqlalchemy import text
 import numpy as np
 
 from config import settings
@@ -58,21 +59,24 @@ async def semantic_search(request: SemanticSearchRequest, db=Depends(get_db)):
         prompt=request.query
     )
     query_embedding = response['embedding']
-    
+
+    # Format embedding as PostgreSQL vector literal
+    embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+
     # Vector similarity search
-    result = await db.execute("""
-        SELECT 
+    result = await db.execute(text("""
+        SELECT
             vi.id as item_id,
             vi.item_type,
             vi.encrypted_metadata,
-            1 - (e.embedding <=> :query_embedding::vector) as score
+            1 - (e.embedding <=> CAST(:query_embedding AS vector)) as score
         FROM embeddings e
         JOIN vault_items vi ON e.item_id = vi.id
         WHERE vi.deleted_at IS NULL
-        ORDER BY e.embedding <=> :query_embedding::vector
+        ORDER BY e.embedding <=> CAST(:query_embedding AS vector)
         LIMIT :limit
-    """, {
-        "query_embedding": str(query_embedding),
+    """), {
+        "query_embedding": embedding_str,
         "limit": request.limit
     })
     

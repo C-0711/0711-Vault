@@ -98,22 +98,24 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
     
     # 2. Semantic search for relevant items
     try:
+        # Format embedding as PostgreSQL vector literal
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
         result = await db.execute(text("""
-            SELECT 
+            SELECT
                 vi.id,
                 vi.item_type,
                 vi.encrypted_metadata,
                 vi.captured_at,
                 vi.storage_key,
-                1 - (e.embedding <=> :query_embedding::vector) as score
+                1 - (e.embedding <=> CAST(:query_embedding AS vector)) as score
             FROM embeddings e
             JOIN vault_items vi ON e.item_id = vi.id
-            WHERE vi.user_id = :user_id 
+            WHERE vi.user_id = :user_id
               AND vi.deleted_at IS NULL
-            ORDER BY e.embedding <=> :query_embedding::vector
+            ORDER BY e.embedding <=> CAST(:query_embedding AS vector)
             LIMIT 10
         """), {
-            "query_embedding": str(query_embedding),
+            "query_embedding": embedding_str,
             "user_id": user_id
         })
         
