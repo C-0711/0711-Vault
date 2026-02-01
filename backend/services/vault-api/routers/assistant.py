@@ -79,14 +79,21 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
     ollama = get_ollama()
     
     # 1. Generate query embedding
+    if not ollama:
+        print(f"ERROR: Ollama client is None! init_db() may not have been called.")
+        return context
+    
     try:
         embedding_response = await ollama.embeddings(
             model=settings.EMBEDDING_MODEL,
             prompt=query
         )
         query_embedding = embedding_response['embedding']
+        print(f"DEBUG: Generated query embedding with {len(query_embedding)} dimensions")
     except Exception as e:
         print(f"Embedding error: {e}")
+        import traceback
+        traceback.print_exc()
         return context
     
     # 2. Semantic search for relevant items
@@ -125,8 +132,11 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
                     "score": item.score,
                     "path": item.storage_key
                 })
+        print(f"DEBUG: Semantic search found {len(items)} items")
     except Exception as e:
         print(f"Semantic search error: {e}")
+        import traceback
+        traceback.print_exc()
     
     # 3. Graph search for people and relationships
     if neo4j:
