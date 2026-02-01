@@ -6,6 +6,9 @@ import { ipcMain, dialog, shell, app, systemPreferences, Notification } from 'el
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { fileWatcher } from './file-watcher';
+import { uploadQueue } from './upload-queue';
+import { cacheManager } from './cache';
 
 // Dynamic import for native module
 let keytar: typeof import('keytar') | null = null;
@@ -256,5 +259,60 @@ export function setupIpcHandlers() {
     } catch (e) {
       return null;
     }
+  });
+
+  // === File Watcher ===
+  ipcMain.handle('get-watch-folders', () => {
+    return fileWatcher.getWatchFolders();
+  });
+
+  ipcMain.handle('add-watch-folder', async (_, folderPath: string) => {
+    return fileWatcher.addWatchFolder(folderPath);
+  });
+
+  ipcMain.handle('remove-watch-folder', async (_, folderPath: string) => {
+    return fileWatcher.removeWatchFolder(folderPath);
+  });
+
+  // === Upload Queue ===
+  ipcMain.handle('get-upload-queue', () => {
+    return uploadQueue.getQueue();
+  });
+
+  ipcMain.handle('get-upload-stats', () => {
+    return uploadQueue.getStats();
+  });
+
+  ipcMain.handle('retry-upload', async (_, id: string) => {
+    return uploadQueue.retry(id);
+  });
+
+  ipcMain.handle('retry-all-uploads', () => {
+    uploadQueue.retryAll();
+  });
+
+  ipcMain.handle('remove-upload', async (_, id: string) => {
+    return uploadQueue.remove(id);
+  });
+
+  ipcMain.handle('clear-completed-uploads', () => {
+    uploadQueue.clearCompleted();
+  });
+
+  // === Cache ===
+  ipcMain.handle('get-cache-stats', () => {
+    return cacheManager.getStats();
+  });
+
+  ipcMain.handle('clear-cache', async () => {
+    await cacheManager.clear();
+  });
+
+  ipcMain.handle('get-cached', async (_, key: string, type: 'thumbnails' | 'files' = 'thumbnails') => {
+    return cacheManager.get(key, type);
+  });
+
+  ipcMain.handle('set-cached', async (_, key: string, data: Buffer, type: 'thumbnails' | 'files' = 'thumbnails') => {
+    await cacheManager.set(key, data, type);
   });
 }

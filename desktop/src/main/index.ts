@@ -7,6 +7,9 @@ import { app, BrowserWindow, shell, nativeTheme, Menu, Tray } from 'electron';
 import path from 'path';
 import { createMenu } from './menu';
 import { setupIpcHandlers } from './ipc';
+import { fileWatcher } from './file-watcher';
+import { uploadQueue } from './upload-queue';
+import { cacheManager } from './cache';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -84,6 +87,29 @@ app.whenReady().then(() => {
   // Create tray
   createTray();
 
+  // Start background services
+  fileWatcher.startAll();
+  uploadQueue.start();
+
+  // Handle new files from watcher
+  fileWatcher.on('file-added', (file) => {
+    console.log('New file detected:', file.filename);
+    uploadQueue.add({
+      filePath: file.path,
+      filename: file.filename,
+      size: file.size,
+      mimeType: getMimeType(file.filename),
+      capturedAt: file.date,
+    });
+  });
+
+  // Update online status
+  mainWindow?.webContents.on('did-finish-load', () => {
+    // Check network status
+    const isOnline = require('electron').net.online;
+    uploadQueue.setOnline(isOnline);
+  });
+
   // macOS: Re-create window when dock icon clicked
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -92,11 +118,32 @@ app.whenReady().then(() => {
   });
 });
 
+// Helper to get MIME type
+function getMimeType(filename: string): string {
+  const ext = filename.toLowerCase().split('.').pop();
+  const types: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    heic: 'image/heic',
+    heif: 'image/heif',
+  };
+  return types[ext || ''] || 'application/octet-stream';
+}
+
 // Quit when all windows are closed (except on macOS)
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Cleanup on quit
+app.on('before-quit', () => {
+  fileWatcher.stopAll();
+  uploadQueue.stop();
 });
 
 // Handle dark mode changes

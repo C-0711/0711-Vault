@@ -92,6 +92,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExif: (filePath: string) => {
     return ipcRenderer.invoke('get-exif', filePath);
   },
+  
+  // Watch folders
+  getWatchFolders: () => ipcRenderer.invoke('get-watch-folders'),
+  addWatchFolder: (path: string) => ipcRenderer.invoke('add-watch-folder', path),
+  removeWatchFolder: (path: string) => ipcRenderer.invoke('remove-watch-folder', path),
+  
+  // Upload queue
+  getUploadQueue: () => ipcRenderer.invoke('get-upload-queue'),
+  getUploadStats: () => ipcRenderer.invoke('get-upload-stats'),
+  retryUpload: (id: string) => ipcRenderer.invoke('retry-upload', id),
+  retryAllUploads: () => ipcRenderer.invoke('retry-all-uploads'),
+  removeUpload: (id: string) => ipcRenderer.invoke('remove-upload', id),
+  clearCompletedUploads: () => ipcRenderer.invoke('clear-completed-uploads'),
+  
+  // Cache
+  getCacheStats: () => ipcRenderer.invoke('get-cache-stats'),
+  clearCache: () => ipcRenderer.invoke('clear-cache'),
+  getCached: (key: string, type?: 'thumbnails' | 'files') => ipcRenderer.invoke('get-cached', key, type),
+  setCached: (key: string, data: Buffer, type?: 'thumbnails' | 'files') => ipcRenderer.invoke('set-cached', key, data, type),
 });
 
 // Type definitions for TypeScript
@@ -117,6 +136,22 @@ declare global {
       scanApplePhotos: () => Promise<{ photos: Array<{ path: string; filename: string; size: number; date: string | null }>; error?: string }>;
       readFile: (filePath: string) => Promise<Buffer | null>;
       getExif: (filePath: string) => Promise<any>;
+      // Watch folders
+      getWatchFolders: () => Promise<string[]>;
+      addWatchFolder: (path: string) => Promise<boolean>;
+      removeWatchFolder: (path: string) => Promise<boolean>;
+      // Upload queue
+      getUploadQueue: () => Promise<any[]>;
+      getUploadStats: () => Promise<{ pending: number; uploading: number; complete: number; failed: number }>;
+      retryUpload: (id: string) => Promise<boolean>;
+      retryAllUploads: () => Promise<void>;
+      removeUpload: (id: string) => Promise<boolean>;
+      clearCompletedUploads: () => Promise<void>;
+      // Cache
+      getCacheStats: () => Promise<{ count: number; sizeMB: number }>;
+      clearCache: () => Promise<void>;
+      getCached: (key: string, type?: 'thumbnails' | 'files') => Promise<Buffer | null>;
+      setCached: (key: string, data: Buffer, type?: 'thumbnails' | 'files') => Promise<void>;
     };
   }
 }
