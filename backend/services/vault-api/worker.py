@@ -1,7 +1,12 @@
+#!/usr/bin/env python3
 """
 0711 Vault Background Worker
 Processes images: face detection, embeddings, OCR
 """
+
+import sys
+# Unbuffered output for Docker logs
+sys.stdout = sys.stderr
 
 import asyncio
 import os
@@ -31,17 +36,26 @@ async def process_item(conn, item_id: str, user_id: str, task_type: str):
         
         # Download file from MinIO
         file_url = f"http://{MINIO_ENDPOINT}/vault/{item['storage_key']}"
-        
+        print(f"  Downloading from: {file_url}")
+
         async with httpx.AsyncClient() as client:
             # Download file
-            file_response = await client.get(file_url, timeout=60)
-            if file_response.status_code != 200:
-                print(f"Failed to download file: {file_response.status_code}")
+            try:
+                file_response = await client.get(file_url, timeout=60)
+            except Exception as e:
+                print(f"  Download error: {e}")
                 return False
+
+            if file_response.status_code != 200:
+                print(f"  Failed to download file: {file_response.status_code} - {file_response.text[:200]}")
+                return False
+
+            print(f"  Downloaded {len(file_response.content)} bytes")
             
             file_data = file_response.content
             
             # Process with AI service
+            print(f"  Processing with AI service at {AI_SERVICE_URL}")
             if item['item_type'] == 'photo':
                 # Full image processing
                 response = await client.post(
@@ -55,9 +69,11 @@ async def process_item(conn, item_id: str, user_id: str, task_type: str):
                     timeout=120
                 )
                 
+                print(f"  AI service response: {response.status_code}")
                 if response.status_code == 200:
                     result = response.json()
-                    
+                    print(f"  Got result: {len(result.get('faces', []))} faces, embedding={bool(result.get('embedding'))}")
+
                     # Save embedding
                     if "embedding" in result and result["embedding"]:
                         embedding_str = "[" + ",".join(map(str, result["embedding"])) + "]"
