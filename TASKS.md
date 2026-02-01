@@ -359,6 +359,7 @@ The assistant should handle:
 
 ### 8.5 Face Detection & Recognition
 **Tested: 2026-02-01 12:20 UTC** ✅ DETECTION WORKING
+**Updated: 2026-02-01 12:45 UTC** - Added face embeddings to pipeline
 
 - [x] **Face detection triggers** ✅
   - [x] Upload photo with face → face detected ✅
@@ -367,8 +368,13 @@ The assistant should handle:
 - [x] **Multiple faces in one photo** ✅
   - [x] All faces detected ✅
   - [x] Each face has separate entry ✅
-- [ ] **Face clustering**
-  - [ ] Same person in multiple photos → grouped (0 clusters yet)
+- [x] **Face embeddings** ✅ NEW
+  - [x] `/process/full` now generates face embeddings
+  - [x] Worker saves embeddings to faces table (vector 512)
+  - [x] Embeddings enable clustering (DBSCAN)
+- [ ] **Face clustering** ⚠️ NEEDS REPROCESS
+  - [ ] Same person in multiple photos → grouped (existing faces lack embeddings)
+  - [ ] Need to reprocess existing photos to generate face embeddings
   - [ ] Clusters appear in "People" section
 - [ ] **Face labeling**
   - [ ] Can name a face cluster
@@ -422,11 +428,13 @@ The assistant should handle:
 
 ### 8.8 AI Assistant (Chat)
 **Tested: 2026-02-01 09:08 UTC** ⚠️ PARTIAL (needs embeddings)
+**Updated: 2026-02-01 12:45 UTC** - Fixed column name mismatch
 
 - [x] **Basic chat** ✅
   - [x] Send message → response received ✅
-  - [ ] Response grounded in vault data ⚠️ (hallucinating - no embeddings yet)
-  - [ ] No hallucinations ❌ (sources: [] = empty context)
+  - [x] **BUG FIXED:** `vault_item_id` → `item_id` in assistant.py and search.py
+  - [ ] Response grounded in vault data (test after redeploy)
+  - [ ] No hallucinations (test after redeploy)
 - [ ] **Query: "When did I last see [person]?"**
   - [ ] Returns date from photo metadata (needs processing)
   - [ ] Shows relevant photos as sources
@@ -861,5 +869,24 @@ curl http://localhost:9507/health
 
 ---
 
-*Last updated: 2026-01-31 23:15*
+---
+
+## Bugs Fixed (2026-02-01)
+
+| Bug | Fix | Files |
+|-----|-----|-------|
+| MinIO 403 Access Denied | Set bucket policy to `download` | Production server |
+| Embedding dimension mismatch | Changed from 768 to 1024 (bge-m3) | PostgreSQL embeddings table |
+| Assistant context empty | Fixed `vault_item_id` → `item_id` | assistant.py, search.py |
+| Search results empty | Fixed `vault_item_id` → `item_id` | search.py |
+| Faces have no embeddings | Added face embedding generation | ai-service/main.py |
+| Worker not saving face embeddings | Updated INSERT to include embedding | worker.py |
+
+**Commits pending push:**
+- fix: Assistant and search context - column name mismatch
+- feat: Generate face embeddings in /process/full pipeline
+
+---
+
+*Last updated: 2026-02-01 12:45*
 *Focus: Photo Vault App ONLY - fully independent deployment*

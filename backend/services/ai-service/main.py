@@ -576,19 +576,35 @@ async def full_process(
             height, width = image.shape[:2]
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             face_results = face_detection.process(rgb_image)
-            
+
             faces = []
             if face_results.detections:
                 for detection in face_results.detections:
                     bbox = detection.location_data.relative_bounding_box
-                    faces.append({
+
+                    # Extract face region for embedding
+                    x = int(max(0, bbox.xmin) * width)
+                    y = int(max(0, bbox.ymin) * height)
+                    w = int(min(bbox.width, 1 - bbox.xmin) * width)
+                    h = int(min(bbox.height, 1 - bbox.ymin) * height)
+
+                    face_data = {
                         "bbox_x": max(0, bbox.xmin),
                         "bbox_y": max(0, bbox.ymin),
                         "bbox_width": min(1 - bbox.xmin, bbox.width),
                         "bbox_height": min(1 - bbox.ymin, bbox.height),
                         "confidence": detection.score[0]
-                    })
-            
+                    }
+
+                    # Generate face embedding
+                    if w > 20 and h > 20:  # Only embed faces of reasonable size
+                        face_crop = image[y:y+h, x:x+w]
+                        face_embedding = await generate_face_embedding(face_crop)
+                        if face_embedding and len(face_embedding) > 0 and face_embedding[0] != 0.0:
+                            face_data["embedding"] = face_embedding
+
+                    faces.append(face_data)
+
             results["faces"] = faces
             results["image_dimensions"] = {"width": width, "height": height}
     

@@ -85,13 +85,24 @@ async def process_item(conn, item_id: str, user_id: str, task_type: str):
                     # Save detected faces
                     if "faces" in result:
                         for face in result["faces"]:
-                            await conn.execute("""
-                                INSERT INTO faces (item_id, user_id, bbox_x, bbox_y, bbox_width, bbox_height, detection_confidence)
-                                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                            """, item_id, user_id, 
-                                face["bbox_x"], face["bbox_y"], 
-                                face["bbox_width"], face["bbox_height"],
-                                face.get("confidence", 0.0))
+                            # Check if face has embedding
+                            if "embedding" in face and face["embedding"]:
+                                embedding_str = "[" + ",".join(map(str, face["embedding"])) + "]"
+                                await conn.execute("""
+                                    INSERT INTO faces (item_id, user_id, bbox_x, bbox_y, bbox_width, bbox_height, detection_confidence, embedding)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::vector)
+                                """, item_id, user_id,
+                                    face["bbox_x"], face["bbox_y"],
+                                    face["bbox_width"], face["bbox_height"],
+                                    face.get("confidence", 0.0), embedding_str)
+                            else:
+                                await conn.execute("""
+                                    INSERT INTO faces (item_id, user_id, bbox_x, bbox_y, bbox_width, bbox_height, detection_confidence)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                """, item_id, user_id,
+                                    face["bbox_x"], face["bbox_y"],
+                                    face["bbox_width"], face["bbox_height"],
+                                    face.get("confidence", 0.0))
                     
                     print(f"Processed photo: {len(result.get('faces', []))} faces, embedding saved")
                 

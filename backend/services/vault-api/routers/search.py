@@ -67,7 +67,7 @@ async def semantic_search(request: SemanticSearchRequest, db=Depends(get_db)):
             vi.encrypted_metadata,
             1 - (e.embedding <=> :query_embedding::vector) as score
         FROM embeddings e
-        JOIN vault_items vi ON e.vault_item_id = vi.id
+        JOIN vault_items vi ON e.item_id = vi.id
         WHERE vi.deleted_at IS NULL
         ORDER BY e.embedding <=> :query_embedding::vector
         LIMIT :limit

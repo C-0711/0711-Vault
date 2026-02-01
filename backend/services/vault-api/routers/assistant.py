@@ -100,7 +100,7 @@ async def build_context(query: str, user_id: str, db, neo4j) -> Dict[str, Any]:
                 vi.storage_key,
                 1 - (e.embedding <=> :query_embedding::vector) as score
             FROM embeddings e
-            JOIN vault_items vi ON e.vault_item_id = vi.id
+            JOIN vault_items vi ON e.item_id = vi.id
             WHERE vi.user_id = :user_id 
               AND vi.deleted_at IS NULL
             ORDER BY e.embedding <=> :query_embedding::vector
