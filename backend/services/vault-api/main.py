@@ -21,6 +21,9 @@ import uuid
 # Storage service
 from storage import generate_upload_url, generate_download_url, delete_object
 
+# Database module (for assistant routes)
+from database import init_db as init_assistant_db
+
 # Stripe billing
 from stripe_routes import router as stripe_router
 
@@ -74,6 +77,13 @@ async def lifespan(app: FastAPI):
         print("✅ Redis connected")
     except Exception as e:
         print(f"⚠️ Redis connection failed: {e}")
+    
+    # Initialize assistant module connections (Neo4j, Ollama, MinIO)
+    try:
+        await init_assistant_db()
+        print("✅ Assistant module initialized")
+    except Exception as e:
+        print(f"⚠️ Assistant module init failed: {e}")
     
     yield
     
