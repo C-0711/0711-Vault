@@ -102,6 +102,17 @@ async def lifespan(app: FastAPI):
     # Cleanup
     if db_pool:
         await db_pool.close()
+    # JWT validation instead of Redis lookup
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if user_id:
+            return user_id
+    except JWTError:
+        pass
+    
+    # Fallback to Redis (legacy)
     if redis_client:
         await redis_client.close()
     print("👋 Vault API shutdown complete")
@@ -143,6 +154,17 @@ async def get_current_user(authorization: str = Header(None)):
     
     token = authorization.split(" ")[1]
     
+    # JWT validation instead of Redis lookup
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if user_id:
+            return user_id
+    except JWTError:
+        pass
+    
+    # Fallback to Redis (legacy)
     if redis_client:
         user_id = await redis_client.get(f"token:{token}")
         if user_id:
@@ -225,6 +247,17 @@ async def health():
         except:
             services["postgres"] = "unhealthy"
     
+    # JWT validation instead of Redis lookup
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if user_id:
+            return user_id
+    except JWTError:
+        pass
+    
+    # Fallback to Redis (legacy)
     if redis_client:
         try:
             await redis_client.ping()
@@ -301,7 +334,18 @@ async def login(request: LoginRequest):
         token = secrets.token_urlsafe(32)
         
         # Store in Redis (24 hour expiry)
-        if redis_client:
+        # JWT validation instead of Redis lookup
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if user_id:
+            return user_id
+    except JWTError:
+        pass
+    
+    # Fallback to Redis (legacy)
+    if redis_client:
             await redis_client.setex(f"token:{token}", 86400, str(user["id"]))
         
         # Update last login
@@ -319,7 +363,18 @@ async def logout(user_id: str = Depends(get_current_user), authorization: str = 
     """Logout and invalidate token."""
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
-        if redis_client:
+        # JWT validation instead of Redis lookup
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if user_id:
+            return user_id
+    except JWTError:
+        pass
+    
+    # Fallback to Redis (legacy)
+    if redis_client:
             await redis_client.delete(f"token:{token}")
     return {"message": "Logged out"}
 
