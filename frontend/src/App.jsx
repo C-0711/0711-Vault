@@ -19,6 +19,7 @@ import Import from './pages/Import'
 import Calendar from './pages/Calendar'
 import Assistant from './pages/Assistant'
 import Albums from './pages/Albums'
+import Chat from './pages/Chat'
 import Sharing from './pages/Sharing'
 import SharedView from './pages/SharedView'
 import Onboarding from './pages/Onboarding'
@@ -79,6 +80,7 @@ function App() {
         ) : (
           <>
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/chat" element={<Chat />} />
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/photos" element={<Photos />} />

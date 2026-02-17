@@ -123,6 +123,9 @@ export default function Layout() {
               </span>
             </div>
             <SidebarLink to="/messages" icon="💬">
+            <SidebarLink to="/chat" icon="🔐">
+              Secure Chat
+            </SidebarLink>
               Messages
             </SidebarLink>
             <SidebarLink to="/calendar" icon="📅">
