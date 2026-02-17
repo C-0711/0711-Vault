@@ -16,7 +16,9 @@ from datetime import datetime
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8001")
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+
+# Albert Storage (replaces MinIO)
+from storage_albert import VaultCrypto
 
 async def process_item(conn, item_id: str, user_id: str, task_type: str):
     """Process a single item from the queue."""
@@ -34,25 +36,27 @@ async def process_item(conn, item_id: str, user_id: str, task_type: str):
             print(f"Item {item_id} not found")
             return False
         
-        # Download file from MinIO
-        file_url = f"http://{MINIO_ENDPOINT}/vault/{item['storage_key']}"
-        print(f"  Downloading from: {file_url}")
+        # Retrieve file from Albert Storage (PostgreSQL)
+        print(f"  Retrieving from Albert Storage: {item['storage_key']}")
+        
+        content_row = await conn.fetchrow("""
+            SELECT encrypted_content FROM vault_content
+            WHERE storage_key = $1 AND user_id = $2
+        """, item['storage_key'], user_id)
+        
+        if not content_row:
+            print(f"  Content not found in storage")
+            return False
+        
+        # Decrypt content
+        try:
+            file_data = VaultCrypto.decrypt(content_row['encrypted_content'])
+            print(f"  Decrypted {len(file_data)} bytes")
+        except Exception as e:
+            print(f"  Decryption error: {e}")
+            return False
 
         async with httpx.AsyncClient() as client:
-            # Download file
-            try:
-                file_response = await client.get(file_url, timeout=60)
-            except Exception as e:
-                print(f"  Download error: {e}")
-                return False
-
-            if file_response.status_code != 200:
-                print(f"  Failed to download file: {file_response.status_code} - {file_response.text[:200]}")
-                return False
-
-            print(f"  Downloaded {len(file_response.content)} bytes")
-            
-            file_data = file_response.content
             
             # Process with AI service
             print(f"  Processing with AI service at {AI_SERVICE_URL}")

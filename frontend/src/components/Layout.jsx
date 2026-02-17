@@ -44,8 +44,11 @@ export default function Layout() {
       <header className="border-b border-zinc-800 bg-zinc-950">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <NavLink to="/" className="text-2xl font-bold text-white">
-            0711
+          <NavLink to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center font-bold text-white text-sm">
+              07
+            </div>
+            <span className="text-xl font-bold text-white">0711</span>
           </NavLink>
 
           {/* Search */}
@@ -56,7 +59,7 @@ export default function Layout() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search photos, people, places..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 pl-10 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 pl-10 text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50"
               />
               <svg
                 className="absolute left-3 top-2.5 w-5 h-5 text-zinc-500"
@@ -72,7 +75,7 @@ export default function Layout() {
                 />
               </svg>
               {searching && (
-                <div className="absolute right-3 top-2.5 w-5 h-5 border-2 border-zinc-600 border-t-white rounded-full animate-spin" />
+                <div className="absolute right-3 top-2.5 w-5 h-5 border-2 border-zinc-600 border-t-emerald-500 rounded-full animate-spin" />
               )}
             </div>
           </form>
@@ -98,18 +101,42 @@ export default function Layout() {
             <SidebarLink to="/assistant" icon="🧠">
               AI Assistant
             </SidebarLink>
+            
+            <div className="pt-4 pb-2">
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide px-3">
+                Library
+              </span>
+            </div>
             <SidebarLink to="/photos" icon="📷">
               Photos
             </SidebarLink>
             <SidebarLink to="/documents" icon="📄">
               Documents
             </SidebarLink>
+            <SidebarLink to="/albums" icon="📁">
+              Albums
+            </SidebarLink>
+            
+            <div className="pt-4 pb-2">
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide px-3">
+                Social
+              </span>
+            </div>
             <SidebarLink to="/messages" icon="💬">
               Messages
             </SidebarLink>
             <SidebarLink to="/calendar" icon="📅">
               Kalender
             </SidebarLink>
+            <SidebarLink to="/sharing" icon="🔗">
+              Shared Links
+            </SidebarLink>
+            
+            <div className="pt-4 pb-2">
+              <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide px-3">
+                Account
+              </span>
+            </div>
             <SidebarLink to="/import" icon="📥">
               Import
             </SidebarLink>
@@ -174,7 +201,7 @@ function SidebarLink({ to, icon, children }) {
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg transition ${
           isActive
-            ? 'bg-zinc-800 text-white'
+            ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30'
             : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
         }`
       }

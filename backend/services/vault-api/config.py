@@ -18,12 +18,9 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
-    # MinIO
-    MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minio_admin"
-    MINIO_SECRET_KEY: str = "minio_secret"
-    MINIO_SECURE: bool = False
-    MINIO_BUCKET: str = "vault"
+    # Albert Storage (replaces MinIO)
+    VAULT_ENCRYPTION_KEY: str = ""  # Base64-encoded 32-byte key (generate for production)
+    VAULT_KEY_SALT: str = ""  # Base64-encoded salt
     
     # Ollama
     OLLAMA_HOST: str = "http://localhost:11434"

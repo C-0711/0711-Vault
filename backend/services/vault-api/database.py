@@ -1,12 +1,12 @@
 """
 Database connections for 0711 Vault API
+MinIO removed - using Albert Storage (PostgreSQL + ChaCha20)
 """
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from neo4j import AsyncGraphDatabase
 from redis import asyncio as aioredis
-from minio import Minio
 import ollama
 import structlog
 
@@ -28,16 +28,13 @@ neo4j_driver = None
 # Redis
 redis_client = None
 
-# MinIO
-minio_client = None
-
 # Ollama
 ollama_client = None
 
 
 async def init_db():
     """Initialize all database connections."""
-    global neo4j_driver, redis_client, minio_client, ollama_client
+    global neo4j_driver, redis_client, ollama_client
     
     # Neo4j
     try:
@@ -58,27 +55,15 @@ async def init_db():
     except Exception as e:
         logger.warning(f"Redis connection failed: {e}")
     
-    # MinIO
-    try:
-        minio_client = Minio(
-            settings.MINIO_ENDPOINT,
-            access_key=settings.MINIO_ACCESS_KEY,
-            secret_key=settings.MINIO_SECRET_KEY,
-            secure=settings.MINIO_SECURE
-        )
-        # Ensure bucket exists
-        if not minio_client.bucket_exists(settings.MINIO_BUCKET):
-            minio_client.make_bucket(settings.MINIO_BUCKET)
-        logger.info("MinIO connected")
-    except Exception as e:
-        logger.warning(f"MinIO connection failed: {e}")
-    
     # Ollama
     try:
         ollama_client = ollama.AsyncClient(host=settings.OLLAMA_HOST)
         logger.info("Ollama connected")
     except Exception as e:
         logger.warning(f"Ollama connection failed: {e}")
+    
+    # Note: Albert Storage is initialized in main.py lifespan
+    logger.info("Albert Storage: initialized via main.py (MinIO replaced)")
 
 
 async def get_db():
@@ -102,11 +87,6 @@ def get_neo4j():
 def get_redis():
     """Get Redis client."""
     return redis_client
-
-
-def get_minio():
-    """Get MinIO client."""
-    return minio_client
 
 
 def get_ollama():

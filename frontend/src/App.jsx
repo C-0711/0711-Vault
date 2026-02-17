@@ -18,6 +18,13 @@ import Pricing from './pages/Pricing'
 import Import from './pages/Import'
 import Calendar from './pages/Calendar'
 import Assistant from './pages/Assistant'
+import Albums from './pages/Albums'
+import Sharing from './pages/Sharing'
+import SharedView from './pages/SharedView'
+import Onboarding from './pages/Onboarding'
+import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Layout from './components/Layout'
 
 function App() {
@@ -56,26 +63,37 @@ function App() {
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       <Routes>
+        {/* Public Routes (accessible without auth) */}
+        <Route path="/s/:token" element={<SharedView />} />
+        
         {!user ? (
           <>
             <Route path="/" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/" />} />
           </>
         ) : (
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/photos" element={<Photos />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/import" element={<Import />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/assistant" element={<Assistant />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Route>
+          <>
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/photos" element={<Photos />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/albums" element={<Albums />} />
+              <Route path="/sharing" element={<Sharing />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/import" element={<Import />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/assistant" element={<Assistant />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Route>
+          </>
         )}
       </Routes>
     </AuthContext.Provider>

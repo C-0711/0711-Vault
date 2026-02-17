@@ -32,19 +32,18 @@ services:
       - "9503:7687"
 
   minio:
-    container_name: vault-minio
-    ports:
-      - "9504:9000"
-      - "9505:9001"
+    profiles: ["disabled"]
 
   vault-api:
     container_name: vault-api
     ports:
       - "9506:8000"
     environment:
-      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_HOST: http://172.17.0.1:11434
       EMBEDDING_MODEL: bge-m3:latest
       VISION_MODEL: llama4:latest
+      STORAGE_SERVICE_URL: http://172.17.0.1:9510
+      STORAGE_BUCKET: vault
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -53,7 +52,7 @@ services:
     ports:
       - "9507:8000"
     environment:
-      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_HOST: http://172.17.0.1:11434
       EMBEDDING_MODEL: bge-m3:latest
       VISION_MODEL: llama4:latest
     extra_hosts:
@@ -66,3 +65,9 @@ services:
     container_name: vault-frontend
     ports:
       - "9508:80"
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.200.120.0/24

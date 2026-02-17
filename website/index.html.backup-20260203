@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>0711 Vault – Dein souveräner Cloud-Speicher</title>
+  <meta name="description" content="Ende-zu-Ende verschlüsselter Cloud-Speicher aus Deutschland. Fotos, Dokumente, Erinnerungen – sicher und privat. Nur du hast den Schlüssel.">
+  <meta name="keywords" content="Cloud Speicher, Verschlüsselung, DSGVO, Datenschutz, Fotos sichern, deutscher Cloud, 0711, Stuttgart">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="0711 Vault – Souveräner Cloud-Speicher">
+  <meta property="og:description" content="Deine Daten gehören dir. Ende-zu-Ende verschlüsselt, DSGVO-konform, Made in Germany.">
+  <meta property="og:image" content="https://vault.0711.io/og-image.jpg">
+  <meta property="og:url" content="https://vault.0711.io">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%2310b981' rx='20' width='100' height='100'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='system-ui' font-weight='bold' font-size='50'>07</text></svg>">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #000000;
+      --bg-card: #0a0a0a;
+      --bg-elevated: #141414;
+      --border: #262626;
+      --text: #fafafa;
+      --text-muted: #a3a3a3;
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-light: #34d399;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --accent: #3b82f6;
+    }
+    
+    html { scroll-behavior: smooth; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    
+    /* ===== NAVIGATION ===== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    nav.scrolled { border-color: var(--border); }
+    
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: white;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    
+    .logo-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    
+    .nav-links a:hover { color: var(--text); }
+    
+    .nav-cta {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-ghost:hover {
+      background: var(--bg-elevated);
+      border-color: var(--text-muted);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--primary-glow);
+    }
+    
+    .btn-large {
+      padding: 16px 32px;
+      font-size: 17px;
+    }
+    
+    /* ===== HERO ===== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 0 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150%;
+      height: 150%;
+      background: radial-gradient(ellipse at center, var(--primary-glow) 0%, transparent 60%);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    
+    .hero-content {
+      position: relative;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+    
+    .hero-badge span { color: var(--primary); font-weight: 600; }
+    
+    .hero h1 {
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      letter-spacing: -2px;
+    }
+    
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hero p {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+    
+    .hero-cta {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      margin-top: 64px;
+      padding-top: 48px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .hero-stat {
+      text-align: center;
+    }
+    
+    .hero-stat-value {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    
+    .hero-stat-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    
+    /* ===== TRUST BAR ===== */
+    .trust-bar {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .trust-bar p {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    
+    .trust-logos {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 48px;
+      flex-wrap: wrap;
+      opacity: 0.6;
+    }
+    
+    .trust-logos img {
+      height: 32px;
+      filter: grayscale(1) brightness(2);
+    }
+    
+    /* ===== FEATURES ===== */
+    .features {
+      padding: 120px 0;
+    }
+    
+    .section-label {
+      display: inline-block;
+      padding: 6px 12px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .section-title {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -1px;
+    }
+    
+    .section-subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 64px;
+    }
+    
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      transition: all 0.3s;
+    }
+    
+    .feature-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--primary-glow);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    
+    .feature-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+    
+    /* ===== HOW IT WORKS ===== */
+    .how-it-works {
+      padding: 120px 0;
+      background: var(--bg-card);
+    }
+    
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 32px;
+      margin-top: 64px;
+    }
+    
+    .step {
+      text-align: center;
+      position: relative;
+    }
+    
+    .step-number {
+      width: 64px;
+      height: 64px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: white;
+      margin: 0 auto 24px;
+      box-shadow: 0 8px 30px var(--primary-glow);
+    }
+    
+    .step h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    
+    .step p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+    
+    /* ===== PRICING ===== */
+    .pricing {
+      padding: 120px 0;
+    }
+    
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 64px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      position: relative;
+    }
+    
+    .pricing-card.featured {
+      border-color: var(--primary);
+      box-shadow: 0 0 60px var(--primary-glow);
+    }
+    
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .pricing-card h3 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .pricing-card .price {
+      font-size: 48px;
+      font-weight: 800;
+      margin: 24px 0;
+    }
+    
+    .pricing-card .price span {
+      font-size: 18px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    
+    .pricing-card .price .strike {
+      font-size: 24px;
+      color: var(--text-muted);
+      text-decoration: line-through;
+      margin-right: 8px;
+    }
+    
+    .pricing-features {
+      list-style: none;
+      margin: 32px 0;
+    }
+    
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    
+    .pricing-features li:last-child { border: none; }
+    
+    .pricing-features .check {
+      color: var(--primary);
+      font-size: 18px;
+    }
+    
+    /* ===== TESTIMONIALS ===== */
+    .testimonials {
+      padding: 120px 0;
+      background: var(--bg-card);
+    }
+    
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 64px;
+    }
+    
+    .testimonial {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+    
+    .testimonial-text {
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-glow);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .testimonial-author strong {
+      display: block;
+      font-weight: 600;
+    }
+    
+    .testimonial-author span {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    
+    /* ===== FAQ ===== */
+    .faq {
+      padding: 120px 0;
+    }
+    
+    .faq-grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 64px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    
+    .faq-question {
+      width: 100%;
+      padding: 24px;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .faq-question:hover { background: var(--bg-elevated); }
+    
+    .faq-answer {
+      padding: 0 24px 24px;
+      color: var(--text-muted);
+      display: none;
+    }
+    
+    .faq-item.open .faq-answer { display: block; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    
+    .faq-icon {
+      font-size: 24px;
+      transition: transform 0.2s;
+    }
+    
+    /* ===== CTA ===== */
+    .cta {
+      padding: 120px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .cta::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at center, var(--primary-glow) 0%, transparent 50%);
+      opacity: 0.4;
+    }
+    
+    .cta-content {
+      position: relative;
+    }
+    
+    .cta h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      margin-bottom: 24px;
+    }
+    
+    .cta p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto 40px;
+    }
+    
+    /* ===== FOOTER ===== */
+    footer {
+      padding: 64px 0 32px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+    
+    .footer-brand p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 16px;
+      max-width: 300px;
+    }
+    
+    .footer-links h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .footer-links a {
+      display: block;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 15px;
+      padding: 6px 0;
+      transition: color 0.2s;
+    }
+    
+    .footer-links a:hover { color: var(--primary); }
+    
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    
+    .footer-legal a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-left: 24px;
+    }
+    
+    .footer-legal a:hover { color: var(--text); }
+    
+    /* ===== MOBILE ===== */
+    .mobile-menu { display: none; }
+    
+    @media (max-width: 768px) {
+      .nav-links, .nav-cta { display: none; }
+      .mobile-menu { display: block; }
+      
+      .hero-stats { flex-direction: column; gap: 24px; }
+      
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      
+      .footer-brand { grid-column: span 2; }
+      
+      .footer-bottom {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+      
+      .footer-legal { margin-top: 8px; }
+      .footer-legal a { margin: 0 12px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav id="nav">
+    <div class="container">
+      <a href="/" class="logo">
+        <div class="logo-icon">07</div>
+        <span class="logo-text">0711 Vault</span>
+      </a>
+      
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Preise</a>
+        <a href="#faq">FAQ</a>
+        <a href="/en/">English</a>
+      </div>
+      
+      <div class="nav-cta">
+        <a href="https://app.vault.0711.io/login" class="btn btn-ghost">Anmelden</a>
+        <a href="https://app.vault.0711.io/register" class="btn btn-primary">Kostenlos starten</a>
+      </div>
+      
+      <button class="mobile-menu" onclick="toggleMenu()">☰</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          🇩🇪 <span>Made in Germany</span> • 100% DSGVO-konform
+        </div>
+        
+        <h1>
+          Deine Daten.<br>
+          <span class="gradient">Deine Kontrolle.</span>
+        </h1>
+        
+        <p>
+          Ende-zu-Ende verschlüsselter Cloud-Speicher für Fotos, Dokumente und Erinnerungen. 
+          Nur du hast den Schlüssel. Kein Tracking. Keine Werbung. Keine Kompromisse.
+        </p>
+        
+        <div class="hero-cta">
+          <a href="https://app.vault.0711.io/register" class="btn btn-primary btn-large">
+            Kostenlos starten →
+          </a>
+          <a href="#features" class="btn btn-ghost btn-large">
+            Mehr erfahren
+          </a>
+        </div>
+        
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-value">E2E</div>
+            <div class="hero-stat-label">Verschlüsselt</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">5 GB</div>
+            <div class="hero-stat-label">Gratis Speicher</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">🇩🇪</div>
+            <div class="hero-stat-label">Deutsche Server</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">Zero</div>
+            <div class="hero-stat-label">Knowledge</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <span class="section-label">Features</span>
+      <h2 class="section-title">Warum 0711 Vault?</h2>
+      <p class="section-subtitle">
+        Wir haben 0711 Vault gebaut, weil wir selbst keine Cloud gefunden haben, 
+        der wir unsere Familienfotos anvertrauen würden.
+      </p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>Zero-Knowledge Verschlüsselung</h3>
+          <p>Deine Dateien werden auf deinem Gerät verschlüsselt, bevor sie unsere Server erreichen. Wir können deine Daten nicht sehen – selbst wenn wir wollten.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>Lokale KI-Analyse</h3>
+          <p>Gesichtserkennung, Objekterkennung und semantische Suche – alles läuft auf unseren eigenen Servern in Deutschland. Keine Cloud-APIs von Google oder Amazon.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Automatischer Backup</h3>
+          <p>Deine Fotos werden automatisch gesichert. Vom iPhone, Android oder Desktop – alles an einem sicheren Ort.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Intelligente Suche</h3>
+          <p>"Zeig mir Fotos vom Strand mit Lisa" – unsere KI versteht natürliche Sprache und findet genau das, was du suchst.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <h3>Sicheres Teilen</h3>
+          <p>Teile Alben mit Familie und Freunden – mit Passwortschutz, Ablaufdatum und voller Kontrolle.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>Import von überall</h3>
+          <p>Migriere von Google Photos, Dropbox oder iCloud. Deine Daten kommen nach Hause.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section class="how-it-works">
+    <div class="container">
+      <div style="text-align: center;">
+        <span class="section-label">So funktioniert's</span>
+        <h2 class="section-title">In 3 Minuten sicher</h2>
+        <p class="section-subtitle" style="margin: 0 auto;">
+          Kein kompliziertes Setup. Kein Technik-Studium nötig.
+        </p>
+      </div>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Account erstellen</h3>
+          <p>E-Mail eingeben und Master-Passwort wählen. Das war's – kein Abo, keine Kreditkarte.</p>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Apps installieren</h3>
+          <p>Lade die App für iPhone, Android, Mac oder Windows. Automatischer Sync startet sofort.</p>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Dateien importieren</h3>
+          <p>Verbinde Google Photos, Dropbox oder iCloud und hole deine Daten nach Hause.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div style="text-align: center;">
+        <span class="section-label">Preise</span>
+        <h2 class="section-title">Einfach. Transparent. Fair.</h2>
+        <p class="section-subtitle" style="margin: 0 auto;">
+          Keine versteckten Kosten. Keine Werbung. Keine Daten-Deals.
+        </p>
+      </div>
+      
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <p style="color: var(--text-muted);">Für den Einstieg</p>
+          <div class="price">€0 <span>/Monat</span></div>
+          
+          <ul class="pricing-features">
+            <li><span class="check">✓</span> 5 GB Speicher</li>
+            <li><span class="check">✓</span> Ende-zu-Ende Verschlüsselung</li>
+            <li><span class="check">✓</span> Automatischer Backup</li>
+            <li><span class="check">✓</span> 3 Geräte</li>
+            <li><span class="check">✓</span> Web & Mobile Apps</li>
+          </ul>
+          
+          <a href="https://app.vault.0711.io/register" class="btn btn-ghost" style="width: 100%; text-align: center;">
+            Kostenlos starten
+          </a>
+        </div>
+        
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Beliebt</div>
+          <h3>Premium</h3>
+          <p style="color: var(--text-muted);">Für Familien & Profis</p>
+          <div class="price">
+            <span class="strike">€9,99</span>€4,99 <span>/Monat</span>
+          </div>
+          
+          <ul class="pricing-features">
+            <li><span class="check">✓</span> <strong>200 GB</strong> Speicher</li>
+            <li><span class="check">✓</span> Ende-zu-Ende Verschlüsselung</li>
+            <li><span class="check">✓</span> <strong>KI-Suche & Gesichtserkennung</strong></li>
+            <li><span class="check">✓</span> <strong>Unbegrenzte Geräte</strong></li>
+            <li><span class="check">✓</span> Versionsverlauf (30 Tage)</li>
+            <li><span class="check">✓</span> Prioritäts-Support</li>
+          </ul>
+          
+          <a href="https://app.vault.0711.io/register?plan=premium" class="btn btn-primary" style="width: 100%; text-align: center;">
+            Jetzt upgraden
+          </a>
+        </div>
+        
+        <div class="pricing-card">
+          <h3>Business</h3>
+          <p style="color: var(--text-muted);">Für Unternehmen</p>
+          <div class="price">€14,99 <span>/User/Monat</span></div>
+          
+          <ul class="pricing-features">
+            <li><span class="check">✓</span> <strong>1 TB</strong> pro User</li>
+            <li><span class="check">✓</span> Admin-Dashboard</li>
+            <li><span class="check">✓</span> Team-Sharing</li>
+            <li><span class="check">✓</span> SSO / SAML</li>
+            <li><span class="check">✓</span> Audit-Logs</li>
+            <li><span class="check">✓</span> Dedizierter Support</li>
+          </ul>
+          
+          <a href="mailto:business@0711.io" class="btn btn-ghost" style="width: 100%; text-align: center;">
+            Kontakt aufnehmen
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="testimonials">
+    <div class="container">
+      <div style="text-align: center;">
+        <span class="section-label">Kundenstimmen</span>
+        <h2 class="section-title">Was unsere Nutzer sagen</h2>
+      </div>
+      
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <p class="testimonial-text">
+            "Endlich eine Cloud, der ich meine Familienfotos anvertrauen kann. 
+            Die Gesichtserkennung ist genial – und funktioniert komplett offline!"
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">👨</div>
+            <div>
+              <strong>Thomas K.</strong>
+              <span>Familienvater, München</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial">
+          <p class="testimonial-text">
+            "Als Anwältin muss ich sicher sein, dass meine Mandantendaten geschützt sind. 
+            0711 Vault gibt mir diese Sicherheit – DSGVO-konform und verschlüsselt."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">👩</div>
+            <div>
+              <strong>Dr. Sarah M.</strong>
+              <span>Rechtsanwältin, Frankfurt</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial">
+          <p class="testimonial-text">
+            "Die Migration von Google Photos war ein Kinderspiel. 
+            Alle meine 50.000 Fotos sind jetzt sicher in Deutschland."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">👨</div>
+            <div>
+              <strong>Michael R.</strong>
+              <span>Fotograf, Berlin</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div style="text-align: center;">
+        <span class="section-label">FAQ</span>
+        <h2 class="section-title">Häufige Fragen</h2>
+      </div>
+      
+      <div class="faq-grid">
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            Was bedeutet "Zero-Knowledge"?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Zero-Knowledge bedeutet, dass wir keinen Zugriff auf deine Daten haben. 
+            Deine Dateien werden auf deinem Gerät verschlüsselt, bevor sie unsere Server erreichen. 
+            Selbst wenn jemand unsere Server hacken würde, würde er nur verschlüsselte Daten sehen.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            Was passiert, wenn ich mein Passwort vergesse?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Dein Master-Passwort ist der einzige Schlüssel zu deinen Daten. 
+            Wir speichern es nirgendwo und können es nicht zurücksetzen. 
+            Deshalb bieten wir einen Recovery-Key an, den du sicher aufbewahren solltest.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            Wo stehen eure Server?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Unsere Server stehen in Deutschland und werden von uns selbst betrieben – 
+            keine AWS, keine Google Cloud, keine Microsoft Azure. 
+            Deine Daten verlassen niemals Deutschland.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            Kann ich von Google Photos/iCloud migrieren?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Ja! Wir haben Import-Tools für Google Photos, iCloud, Dropbox, OneDrive und Nextcloud. 
+            Der Import läuft automatisch im Hintergrund und erhält alle Metadaten.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            Wie funktioniert die KI-Suche?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Unsere KI läuft auf unseren eigenen Servern in Deutschland – 
+            keine Cloud-APIs von Google oder Amazon. 
+            Die Analyse passiert auf verschlüsselten Thumbnails, 
+            die originalen Dateien bleiben geschützt.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Bereit für echte Privatsphäre?</h2>
+        <p>
+          Starte kostenlos mit 5 GB Speicher. Keine Kreditkarte erforderlich.
+        </p>
+        <a href="https://app.vault.0711.io/register" class="btn btn-primary btn-large">
+          Jetzt kostenlos starten →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="/" class="logo">
+            <div class="logo-icon">07</div>
+            <span class="logo-text">0711 Vault</span>
+          </a>
+          <p>
+            Souveräner Cloud-Speicher aus Stuttgart. 
+            Ende-zu-Ende verschlüsselt, DSGVO-konform, Made in Germany.
+          </p>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Produkt</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Preise</a>
+          <a href="/download">Downloads</a>
+          <a href="/changelog">Changelog</a>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Unternehmen</h4>
+          <a href="/about">Über uns</a>
+          <a href="/blog">Blog</a>
+          <a href="/jobs">Jobs</a>
+          <a href="/press">Presse</a>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Support</h4>
+          <a href="/help">Hilfe-Center</a>
+          <a href="/contact">Kontakt</a>
+          <a href="/status">Status</a>
+          <a href="mailto:support@0711.io">E-Mail</a>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <div>© 2026 0711.io GmbH. Alle Rechte vorbehalten.</div>
+        <div class="footer-legal">
+          <a href="/datenschutz">Datenschutz</a>
+          <a href="/agb">AGB</a>
+          <a href="/imprint">Impressum</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 50);
+    });
+    
+    // FAQ toggle
+    function toggleFaq(btn) {
+      btn.parentElement.classList.toggle('open');
+    }
+    
+    // Mobile menu
+    function toggleMenu() {
+      // TODO: Implement mobile menu
+    }
+  </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 Zero-knowledge encrypted storage backend
 """
 
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Header, Query, Response
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Header, Query
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, EmailStr
@@ -18,18 +18,19 @@ import hashlib
 import json
 import uuid
 
-# Storage service (Albert - replaces MinIO)
-from storage_albert import (
-    init_storage, get_storage, VaultCrypto,
-    generate_upload_url, generate_download_url,
-    store_content, retrieve_content, delete_content
-)
+# Storage service
+from storage import generate_upload_url, generate_download_url, delete_object
 
 # Database module (for assistant routes)
 from database import init_db as init_assistant_db
 
+# Email service
+from email_service import email_service
+from sentry_config import init_sentry
+
 # Stripe billing
 from stripe_routes import router as stripe_router
+import stripe_routes
 
 # iMessage import (macOS only)
 try:
@@ -43,7 +44,17 @@ from calendar_routes import router as calendar_router
 
 # Personal AI Assistant
 from routers.assistant import router as assistant_router
-from routers.chat import router as chat_router
+
+# Albums, Sharing, Versions
+from routers.albums import router as albums_router
+from routers.sharing import router as sharing_router
+from routers.versions import router as versions_router
+
+# Import Connectors (Dropbox, Google Drive, OneDrive, etc.)
+from routers.import_connectors import router as import_router
+
+# Account Management (DSGVO, email verification, etc.)
+from routers.account import router as account_router
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
@@ -51,7 +62,9 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3:latest")
 VISION_MODEL = os.getenv("VISION_MODEL", "llama4:latest")
-# MinIO removed - Albert Storage uses PostgreSQL + ChaCha20-Poly1305
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
 
 # Global connections
@@ -65,11 +78,16 @@ async def lifespan(app: FastAPI):
     global db_pool, redis_client
     
     print("🚀 Starting 0711 Vault API...")
+    init_sentry()
+    print("")
     
     # Connect to PostgreSQL
     try:
         db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
         print("✅ PostgreSQL connected")
+
+        # Share db_pool with stripe_routes
+        stripe_routes.set_db_pool(db_pool)
     except Exception as e:
         print(f"⚠️ PostgreSQL connection failed: {e}")
     
@@ -81,21 +99,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ Redis connection failed: {e}")
     
-    # Initialize assistant module connections (Neo4j, Ollama)
+    # Initialize assistant module connections (Neo4j, Ollama, MinIO)
     try:
         await init_assistant_db()
         print("✅ Assistant module initialized")
     except Exception as e:
         print(f"⚠️ Assistant module init failed: {e}")
-    
-    # Initialize Albert storage (replaces MinIO)
-    try:
-        if db_pool:
-            storage = init_storage(db_pool)
-            await storage.ensure_table()
-            print("✅ Albert storage initialized (MinIO replaced)")
-    except Exception as e:
-        print(f"⚠️ Albert storage init failed: {e}")
     
     yield
     
@@ -114,10 +123,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Rate Limiting
+from middleware import RateLimitMiddleware, LoginProtectionMiddleware, SecurityHeadersMiddleware
+app.add_middleware(RateLimitMiddleware, requests_per_minute=100, login_requests_per_minute=5)
+app.add_middleware(LoginProtectionMiddleware, max_attempts=5, lockout_minutes=15)
+app.add_middleware(SecurityHeadersMiddleware)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://vault.0711.io", "https://app.vault.0711.io", "https://get.0711.io", "https://0711.io", "http://localhost:3000", "http://localhost:9508"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -127,8 +142,12 @@ app.add_middleware(
 app.include_router(stripe_router)
 app.include_router(calendar_router)
 app.include_router(assistant_router, prefix="/assistant", tags=["AI Assistant"])
+app.include_router(albums_router)
+app.include_router(sharing_router)
+app.include_router(versions_router)
+app.include_router(import_router)
+app.include_router(account_router)
 if IMESSAGE_AVAILABLE:
-app.include_router(chat_router)
     app.include_router(imessage_router)
 
 
@@ -168,6 +187,16 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    token: str
+    new_auth_hash: str
+    new_salt: str
+    new_encrypted_master_key: str
     user_id: str
     encrypted_master_key: str
 
@@ -246,6 +275,7 @@ async def health():
 
 # ===========================================
 # AUTH ENDPOINTS
+
 # ===========================================
 
 @app.post("/auth/register", response_model=dict)
@@ -259,13 +289,108 @@ async def register(request: RegisterRequest):
         if existing:
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        user_id = await conn.fetchval("""
-            INSERT INTO users (email, auth_hash, salt, encrypted_master_key)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id
-        """, request.email, request.auth_hash, request.salt, request.encrypted_master_key)
+        # Generate email verification token
+        verification_token = secrets.token_urlsafe(32)
+        verification_expires = datetime.utcnow() + timedelta(hours=24)
         
-        return {"user_id": str(user_id), "message": "User registered successfully"}
+        user_id = await conn.fetchval("""
+            INSERT INTO users (email, auth_hash, salt, encrypted_master_key, 
+                             email_verified, email_verification_token, email_verification_expires_at)
+            VALUES ($1, $2, $3, $4, false, $5, $6)
+            RETURNING id
+        """, request.email, request.auth_hash, request.salt, request.encrypted_master_key,
+            verification_token, verification_expires)
+        
+        # Send verification email
+        email_sent = email_service.send_verification_email(request.email, verification_token)
+        if not email_sent:
+            logger.warning(f"Failed to send verification email to {request.email}")
+        
+        return {
+            "user_id": str(user_id), 
+            "message": "User registered successfully. Please check your email to verify your account.",
+            "email_verification_required": True
+        }
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    token: str
+
+
+@app.post("/auth/verify-email")
+async def verify_email(request: VerifyEmailRequest):
+    """Verify user's email address with token."""
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow("""
+            SELECT id, email_verified, email_verification_token, email_verification_expires_at
+            FROM users WHERE email = $1
+        """, request.email)
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user["email_verified"]:
+            return {"message": "Email already verified", "verified": True}
+        
+        if user["email_verification_token"] != request.token:
+            raise HTTPException(status_code=400, detail="Invalid verification token")
+        
+        if user["email_verification_expires_at"] and user["email_verification_expires_at"] < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="Verification token expired. Please request a new one.")
+        
+        # Mark email as verified
+        await conn.execute("""
+            UPDATE users 
+            SET email_verified = true, 
+                email_verified_at = NOW(),
+                email_verification_token = NULL,
+                email_verification_expires_at = NULL
+            WHERE id = $1
+        """, user["id"])
+        
+        return {"message": "Email verified successfully!", "verified": True}
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+@app.post("/auth/resend-verification")
+async def resend_verification(request: ResendVerificationRequest):
+    """Resend email verification link."""
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow("""
+            SELECT id, email_verified FROM users WHERE email = $1
+        """, request.email)
+        
+        # Always return success to prevent email enumeration
+        if not user:
+            return {"message": "If that email exists and is unverified, we've sent a new verification link."}
+        
+        if user["email_verified"]:
+            return {"message": "Email is already verified."}
+        
+        # Generate new verification token
+        verification_token = secrets.token_urlsafe(32)
+        verification_expires = datetime.utcnow() + timedelta(hours=24)
+        
+        await conn.execute("""
+            UPDATE users 
+            SET email_verification_token = $1, email_verification_expires_at = $2
+            WHERE id = $3
+        """, verification_token, verification_expires, user["id"])
+        
+        # Send verification email
+        email_service.send_verification_email(request.email, verification_token)
+        
+        return {"message": "If that email exists and is unverified, we've sent a new verification link."}
 
 
 @app.get("/auth/salt/{email}")
@@ -324,6 +449,124 @@ async def logout(user_id: str = Depends(get_current_user), authorization: str = 
     return {"message": "Logged out"}
 
 
+@app.post("/auth/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """
+    Request a password reset.
+    Sends email with reset link if user exists.
+
+    **IMPORTANT:** Due to zero-knowledge encryption, resetting password
+    will result in loss of access to previously encrypted data.
+    """
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    # Always return success to prevent email enumeration
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow(
+            "SELECT id FROM users WHERE email = $1",
+            request.email
+        )
+
+        if user:
+            # Generate secure reset token
+            reset_token = secrets.token_urlsafe(32)
+            expires_at = datetime.utcnow() + timedelta(hours=1)
+
+            # Store reset token
+            await conn.execute("""
+                INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (user_id)
+                DO UPDATE SET token = $2, expires_at = $3, created_at = NOW()
+            """, user["id"], reset_token, expires_at)
+
+            # Send reset email
+            frontend_url = os.getenv("FRONTEND_URL", "https://vault.0711.io")
+            reset_url = f"{frontend_url}/reset-password"
+            email_sent = email_service.send_password_reset(
+                request.email,
+                reset_token,
+                reset_url
+            )
+
+            if not email_sent:
+                print(f"⚠️ Failed to send reset email to {request.email}")
+
+    # Always return success (prevent email enumeration)
+    return {
+        "message": "If that email exists, we've sent a password reset link. Check your inbox.",
+        "warning": "Resetting your password will result in loss of access to previously encrypted data."
+    }
+
+
+@app.post("/auth/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    """
+    Reset password using token from email.
+
+    **IMPORTANT:** This creates new encryption keys.
+    User will lose access to old encrypted data.
+    """
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    async with db_pool.acquire() as conn:
+        # Get user
+        user = await conn.fetchrow(
+            "SELECT id FROM users WHERE email = $1",
+            request.email
+        )
+
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid reset request")
+
+        # Verify token
+        reset_token = await conn.fetchrow("""
+            SELECT id, expires_at
+            FROM password_reset_tokens
+            WHERE user_id = $1 AND token = $2
+        """, user["id"], request.token)
+
+        if not reset_token:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+        if datetime.utcnow() > reset_token["expires_at"]:
+            # Delete expired token
+            await conn.execute(
+                "DELETE FROM password_reset_tokens WHERE id = $1",
+                reset_token["id"]
+            )
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+
+        # Hash the new auth_hash (bcrypt)
+        import bcrypt
+        new_hash = bcrypt.hashpw(request.new_auth_hash.encode(), bcrypt.gensalt()).decode()
+
+        # Update password
+        await conn.execute("""
+            UPDATE users
+            SET auth_hash = $1,
+                salt = $2,
+                encrypted_master_key = $3,
+                updated_at = NOW()
+            WHERE id = $4
+        """, new_hash, request.new_salt, request.new_encrypted_master_key, user["id"])
+
+        # Delete used token
+        await conn.execute(
+            "DELETE FROM password_reset_tokens WHERE id = $1",
+            reset_token["id"]
+        )
+
+        print(f"✅ Password reset successful for {request.email}")
+
+    return {
+        "message": "Password reset successful. You can now login with your new password.",
+        "warning": "Your previous encrypted data is no longer accessible."
+    }
+
+
 # ===========================================
 # VAULT ITEM ENDPOINTS
 # ===========================================
@@ -336,7 +579,7 @@ async def create_item(item: VaultItemCreate, user_id: str = Depends(get_current_
     
     # Generate presigned upload URL
     filename = f"file.{item.mime_type.split('/')[-1]}" if item.mime_type else "file"
-    upload_url, storage_key = generate_upload_url(
+    upload_url, storage_key = await generate_upload_url(
         user_id=user_id,
         filename=filename,
         content_type=item.mime_type or "application/octet-stream",
@@ -399,139 +642,6 @@ async def list_items(
         return {"items": [dict(item) for item in items], "count": len(items)}
 
 
-# ===========================================
-# DIRECT UPLOAD/DOWNLOAD (Albert Storage)
-# ===========================================
-
-@app.post("/vault/items/{item_id}/upload")
-async def upload_item_content(
-    item_id: str,
-    file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user)
-):
-    """
-    Upload encrypted content directly (replaces presigned URL upload).
-    Content is encrypted with ChaCha20-Poly1305 and stored in PostgreSQL.
-    """
-    if not db_pool:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    
-    # Verify item exists and belongs to user
-    async with db_pool.acquire() as conn:
-        item = await conn.fetchrow(
-            "SELECT storage_key FROM vault_items WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL",
-            uuid.UUID(item_id), user_id
-        )
-        
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
-        
-        storage_key = item['storage_key']
-    
-    # Read content
-    content = await file.read()
-    
-    # Store encrypted content
-    try:
-        await store_content(user_id, storage_key, content)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
-    
-    # Update item status
-    async with db_pool.acquire() as conn:
-        await conn.execute(
-            "UPDATE vault_items SET processing_status = 'uploaded' WHERE id = $1",
-            uuid.UUID(item_id)
-        )
-    
-    return {"message": "Content uploaded", "item_id": item_id, "size": len(content)}
-
-
-@app.get("/vault/items/{item_id}/download")
-async def download_item_content(
-    item_id: str,
-    user_id: str = Depends(get_current_user)
-):
-    """
-    Download decrypted content directly (replaces presigned URL download).
-    """
-    if not db_pool:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    
-    # Get item info
-    async with db_pool.acquire() as conn:
-        item = await conn.fetchrow(
-            "SELECT storage_key, mime_type, encrypted_metadata FROM vault_items WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL",
-            uuid.UUID(item_id), user_id
-        )
-        
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
-    
-    # Retrieve and decrypt content
-    try:
-        content = await retrieve_content(item['storage_key'], user_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Content not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
-    
-    return Response(
-        content=content,
-        media_type=item['mime_type'] or "application/octet-stream"
-    )
-
-
-@app.post("/vault/upload")
-async def direct_upload(
-    file: UploadFile = File(...),
-    item_type: str = Query("document"),
-    user_id: str = Depends(get_current_user)
-):
-    """
-    Combined create + upload in single request.
-    Creates item and stores content in one call.
-    """
-    if not db_pool:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    
-    # Read content
-    content = await file.read()
-    
-    # Generate storage key
-    _, storage_key = generate_upload_url(user_id, file.filename or "file")
-    
-    # Create item
-    async with db_pool.acquire() as conn:
-        item_id = await conn.fetchval("""
-            INSERT INTO vault_items (user_id, item_type, storage_key, file_size, mime_type, processing_status)
-            VALUES ($1, $2, $3, $4, $5, 'uploaded')
-            RETURNING id
-        """, user_id, item_type, storage_key, len(content), file.content_type)
-        
-        # Add to processing queue
-        await conn.execute("""
-            INSERT INTO processing_queue (item_id, user_id, task_type, priority)
-            VALUES ($1, $2, 'full_process', 5)
-        """, item_id, user_id)
-    
-    # Store encrypted content
-    try:
-        await store_content(user_id, storage_key, content)
-    except Exception as e:
-        # Rollback: delete the item
-        async with db_pool.acquire() as conn:
-            await conn.execute("DELETE FROM vault_items WHERE id = $1", item_id)
-        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
-    
-    return {
-        "item_id": str(item_id),
-        "storage_key": storage_key,
-        "size": len(content),
-        "message": "Content uploaded and encrypted"
-    }
-
-
 @app.get("/vault/items/{item_id}")
 async def get_item(item_id: str, user_id: str = Depends(get_current_user)):
     """Get single vault item with presigned download URL."""
@@ -550,7 +660,7 @@ async def get_item(item_id: str, user_id: str = Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="Item not found")
         
         # Generate presigned download URL
-        download_url = generate_download_url(
+        download_url = await generate_download_url(
             storage_key=item['storage_key'],
             expires=timedelta(hours=1)
         )
