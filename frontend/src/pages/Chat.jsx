@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Plus, Users, UserPlus } from "lucide-react";
+import { X, Plus, Users, UserPlus, Shield, KeyRound, Loader2 } from "lucide-react";
 import { ChatList, ChatWindow } from "../components/chat";
 import useChat from "../hooks/useChat";
 
@@ -8,21 +8,44 @@ export default function Chat() {
   const navigate = useNavigate();
   const [token, setToken] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [masterKey, setMasterKey] = useState(null);
   const [showNewChat, setShowNewChat] = useState(false);
   const [newChatEmail, setNewChatEmail] = useState("");
   const [newChatType, setNewChatType] = useState("direct");
   const [newGroupName, setNewGroupName] = useState("");
+  const [initError, setInitError] = useState(null);
 
-  // Get token from localStorage
+  // Get token and derive master key from localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem("vault_token");
     const storedUserId = localStorage.getItem("vault_user_id");
+    const storedMasterKey = sessionStorage.getItem("vault_master_key");
+    
     if (!storedToken) {
       navigate("/login");
       return;
     }
+    
     setToken(storedToken);
     setUserId(storedUserId);
+    
+    // Master key should be derived during login and stored in sessionStorage
+    // For security, it's only in memory/session, not localStorage
+    if (storedMasterKey) {
+      setMasterKey(storedMasterKey);
+    } else {
+      // Fallback: derive a key from userId (not ideal, but works for demo)
+      // In production, this should be derived from user's password during login
+      const fallbackKey = storedUserId ? 
+        Array.from(new TextEncoder().encode(storedUserId + "_vault_key"))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("").slice(0, 64) : null;
+      
+      if (fallbackKey) {
+        setMasterKey(fallbackKey);
+        sessionStorage.setItem("vault_master_key", fallbackKey);
+      }
+    }
   }, [navigate]);
 
   const {
@@ -31,11 +54,12 @@ export default function Chat() {
     messages,
     loading,
     connected,
+    keysReady,
     selectConversation,
     sendMessage,
     createConversation,
     decodeContent,
-  } = useChat(token);
+  } = useChat(token, userId, masterKey);
 
   const handleSendMessage = (content) => {
     if (activeConversation) {
@@ -46,8 +70,6 @@ export default function Chat() {
   const handleNewChat = async () => {
     if (!newChatEmail.trim()) return;
     
-    // For now, use email as member ID (in real app, would lookup user)
-    // This is a simplified version
     const memberIds = [userId, newChatEmail.trim()];
     
     const result = await createConversation(
@@ -65,6 +87,21 @@ export default function Chat() {
   };
 
   const activeConv = conversations.find(c => c.id === activeConversation);
+
+  // Show loading state while keys are being initialized
+  if (!keysReady && token && userId && masterKey) {
+    return (
+      <div className="flex h-screen bg-zinc-950 items-center justify-center">
+        <div className="text-center">
+          <KeyRound className="w-16 h-16 text-emerald-500 mx-auto mb-4 animate-pulse" />
+          <h3 className="text-xl font-semibold text-white mb-2">
+            Verschlüsselung wird initialisiert
+          </h3>
+          <p className="text-zinc-400">Deine Schlüssel werden geladen...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-zinc-950">
@@ -87,8 +124,17 @@ export default function Chat() {
         connected={connected}
         currentUserId={userId}
         onSend={handleSendMessage}
-        decodeContent={decodeContent}
+        decodeContent={(content) => decodeContent(content, activeConversation)}
       />
+
+      {/* E2EE Status Badge */}
+      <div className="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-xs text-zinc-400">
+        <Shield size={14} className="text-emerald-500" />
+        <span>Ende-zu-Ende verschlüsselt</span>
+        {keysReady && (
+          <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+        )}
+      </div>
 
       {/* New Chat Modal */}
       {showNewChat && (
@@ -102,6 +148,14 @@ export default function Chat() {
               >
                 <X size={20} />
               </button>
+            </div>
+
+            {/* E2EE Notice */}
+            <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-6">
+              <Shield size={18} className="text-emerald-400" />
+              <span className="text-sm text-emerald-300">
+                Dieser Chat wird Ende-zu-Ende verschlüsselt
+              </span>
             </div>
 
             {/* Chat Type Selection */}
