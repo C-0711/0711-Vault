@@ -20,7 +20,7 @@ const KEY_LENGTH = 32;
  * Generate a new X25519 keypair for encryption
  */
 export function generateEncryptionKeypair() {
-  const privateKey = x25519.utils.randomPrivateKey();
+  const privateKey = randomBytes(32);
   const publicKey = x25519.getPublicKey(privateKey);
   return {
     privateKey: bytesToHex(privateKey),
@@ -32,7 +32,7 @@ export function generateEncryptionKeypair() {
  * Generate a new Ed25519 keypair for signing
  */
 export function generateSigningKeypair() {
-  const privateKey = ed25519.utils.randomPrivateKey();
+  const privateKey = randomBytes(32);
   const publicKey = ed25519.getPublicKey(privateKey);
   return {
     privateKey: bytesToHex(privateKey),
