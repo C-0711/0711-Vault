@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
+import { api } from '../lib/api'
 import { Eye, EyeOff, Lock, Mail, Github } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -32,6 +33,7 @@ export default function Login() {
       }
 
       const data = await res.json()
+      api.setToken(data.access_token)
       login(data.access_token, data.user_id)
       navigate('/')
     } catch (err) {
@@ -64,11 +66,11 @@ export default function Login() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">E-Mail</label>
+              <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-2">E-Mail</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type="email"
+                  type="email" id="email" name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
@@ -79,11 +81,11 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">Passwort</label>
+              <label htmlFor="password" className="block text-sm font-medium text-zinc-300 mb-2">Passwort</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"} id="password" name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-12 pr-12 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"

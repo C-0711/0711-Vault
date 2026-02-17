@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
+import { api } from '../lib/api'
 import { Eye, EyeOff, Lock, Mail, User, Github, Check, X } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -77,6 +78,7 @@ export default function Register() {
       }
 
       const data = await res.json()
+      api.setToken(data.access_token)
       login(data.access_token, data.user_id)
       navigate('/')
     } catch (err) {
@@ -109,11 +111,11 @@ export default function Register() {
 
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">Name (optional)</label>
+              <label htmlFor="displayName" className="block text-sm font-medium text-zinc-300 mb-2">Name (optional)</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type="text"
+                  type="text" id="displayName" name="displayName"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
@@ -123,11 +125,11 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">E-Mail</label>
+              <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-2">E-Mail</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type="email"
+                  type="email" id="email" name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
@@ -138,11 +140,11 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">Passwort</label>
+              <label htmlFor="password" className="block text-sm font-medium text-zinc-300 mb-2">Passwort</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? 'text' : 'password'} id="password" name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-12 pr-12 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
@@ -175,11 +177,11 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">Passwort bestätigen</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-300 mb-2">Passwort bestätigen</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? 'text' : 'password'} id="confirmPassword" name="confirmPassword"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pl-12 pr-12 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
@@ -200,7 +202,7 @@ export default function Register() {
 
             <label className="flex items-start gap-3 cursor-pointer">
               <input
-                type="checkbox"
+                type="checkbox" id="acceptTerms" name="acceptTerms"
                 checked={acceptTerms}
                 onChange={(e) => setAcceptTerms(e.target.checked)}
                 className="mt-1 w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-900"
