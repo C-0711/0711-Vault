@@ -47,6 +47,7 @@ from routers.s3 import router as s3_router
 from routers.folders import router as folders_router
 from routers.webhooks import router as webhooks_router
 from routers.quotas import router as quotas_router
+from routers.sharing import router as sharing_router
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
@@ -134,6 +135,7 @@ app.include_router(s3_router, tags=["S3 Compatible"])
 app.include_router(folders_router)
 app.include_router(webhooks_router)
 app.include_router(quotas_router)
+app.include_router(sharing_router)
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
 
@@ -930,3 +932,11 @@ async def list_models():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# OpenAPI Documentation Configuration
+app.title = "0711-Vault API"
+app.description = "Privacy-first personal vault with AI-powered organization"
+app.version = "2.0.0"
+app.docs_url = "/docs"
+app.redoc_url = "/redoc"
+app.openapi_url = "/openapi.json"
