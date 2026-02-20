@@ -44,6 +44,8 @@ from calendar_routes import router as calendar_router
 # Personal AI Assistant
 from routers.assistant import router as assistant_router
 from routers.s3 import router as s3_router
+from routers.folders import router as folders_router
+from routers.webhooks import router as webhooks_router
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
@@ -128,6 +130,8 @@ app.include_router(stripe_router)
 app.include_router(calendar_router)
 app.include_router(assistant_router, prefix="/assistant", tags=["AI Assistant"])
 app.include_router(s3_router, tags=["S3 Compatible"])
+app.include_router(folders_router)
+app.include_router(webhooks_router)
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
 
