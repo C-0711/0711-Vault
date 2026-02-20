@@ -187,3 +187,68 @@ class EmailService:
 
 # Global instance for import
 email_service = EmailService()
+
+# ===========================================
+# INVITATION EMAILS
+# ===========================================
+
+async def send_invite_email(email: str, invite_token: str, tenant_id: str):
+    """Send invitation email to new user."""
+    import os
+    import httpx
+    
+    sendgrid_key = os.getenv('SENDGRID_API_KEY')
+    if not sendgrid_key:
+        print(f"[EMAIL] SendGrid not configured - would invite {email} for tenant {tenant_id}")
+        print(f"[EMAIL] Invite link: https://{tenant_id}.0711.io/accept-invite?token={invite_token}")
+        return
+    
+    invite_url = f"https://{tenant_id}.0711.io/accept-invite?token={invite_token}"
+    
+    tenant_names = {
+        'bosch': 'Bosch',
+        'lightnet': 'Lightnet', 
+        'isolde': 'Isolde',
+        'bette': 'Bette'
+    }
+    tenant_name = tenant_names.get(tenant_id, tenant_id.title())
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; background: #0a0a0a; color: white; padding: 40px;">
+        <div style="max-width: 500px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; padding: 32px;">
+            <h1 style="margin: 0 0 24px 0;">Willkommen bei {tenant_name}</h1>
+            <p style="color: #a0a0a0;">
+                Sie wurden eingeladen, dem {tenant_name} Workspace auf 0711 Studio beizutreten.
+            </p>
+            <a href="{invite_url}" 
+               style="display: inline-block; background: #3b82f6; color: white; 
+                      padding: 12px 24px; border-radius: 8px; text-decoration: none; 
+                      margin: 24px 0;">
+                Einladung annehmen
+            </a>
+            <p style="color: #666; font-size: 12px;">
+                Dieser Link ist 7 Tage gültig. Falls Sie diese Einladung nicht erwartet haben,
+                können Sie diese E-Mail ignorieren.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            'https://api.sendgrid.com/v3/mail/send',
+            headers={
+                'Authorization': f'Bearer {sendgrid_key}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'personalizations': [{'to': [{'email': email}]}],
+                'from': {'email': 'noreply@0711.io', 'name': '0711 Studio'},
+                'subject': f'Einladung zu {tenant_name} auf 0711 Studio',
+                'content': [{'type': 'text/html', 'value': html_content}]
+            }
+        )
+    
+    print(f"[EMAIL] Invitation sent to {email} for tenant {tenant_id}")
