@@ -53,6 +53,7 @@ from routers.git import router as git_router, init_git_router
 from routers.publish import router as publish_router, init_publish_router
 from routers.pipeline import router as pipeline_router
 from routers.mcp import router as mcp_router, init_mcp_router
+from routers.docs_routes import router as docs_router, init_docs_router
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
@@ -82,6 +83,7 @@ async def lifespan(app: FastAPI):
         init_git_router(db_pool)
         init_publish_router(db_pool)
         init_mcp_router(db_pool)
+        init_docs_router(db_pool)
     except Exception as e:
         print(f"⚠️ PostgreSQL connection failed: {e}")
     
@@ -148,6 +150,7 @@ app.include_router(git_router)
 app.include_router(publish_router)
 app.include_router(pipeline_router)
 app.include_router(mcp_router)
+app.include_router(docs_router)
 app.include_router(versions_router)
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
