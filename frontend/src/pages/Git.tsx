@@ -11,6 +11,8 @@ import { DiffViewer } from '../components/git/DiffViewer';
 import { CommitHistory } from '../components/git/CommitHistory';
 import { CommitModal } from '../components/git/CommitModal';
 import { ReviewList } from '../components/git/ReviewList';
+import { PublishSettings } from '../components/git/PublishSettings';
+import { TeamSettings } from '../components/git/TeamSettings';
 
 interface Space {
   id: string;
@@ -21,7 +23,7 @@ interface Space {
   visibility: string;
 }
 
-type ViewMode = 'tree' | 'history' | 'diff' | 'reviews';
+type ViewMode = 'tree' | 'history' | 'diff' | 'reviews' | 'publish' | 'team';
 
 export function GitPage() {
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
@@ -62,48 +64,51 @@ export function GitPage() {
           {selectedSpace && (
             <div className="flex items-center gap-3">
               {/* View toggles */}
-              <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1">
+              <div className="flex items-center bg-gray-700 rounded-lg p-1">
                 <button
                   onClick={() => setView('tree')}
-                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                    view === 'tree' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded text-sm ${view === 'tree' ? 'bg-gray-600' : 'text-gray-400'}`}
                 >
-                  📁 Files
+                  📁
                 </button>
                 <button
                   onClick={() => setView('history')}
-                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                    view === 'history' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded text-sm ${view === 'history' ? 'bg-gray-600' : 'text-gray-400'}`}
                 >
-                  📜 History
+                  📜
                 </button>
                 <button
                   onClick={() => setView('diff')}
-                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                    view === 'diff' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded text-sm ${view === 'diff' ? 'bg-gray-600' : 'text-gray-400'}`}
                 >
-                  ⚡ Compare
+                  ⚡
                 </button>
                 <button
                   onClick={() => setView('reviews')}
-                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                    view === 'reviews' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded text-sm ${view === 'reviews' ? 'bg-gray-600' : 'text-gray-400'}`}
                 >
-                  🔀 Reviews
+                  🔀
+                </button>
+                <button
+                  onClick={() => setView('publish')}
+                  className={`px-3 py-1.5 rounded text-sm ${view === 'publish' ? 'bg-gray-600' : 'text-gray-400'}`}
+                >
+                  📚
+                </button>
+                <button
+                  onClick={() => setView('team')}
+                  className={`px-3 py-1.5 rounded text-sm ${view === 'team' ? 'bg-gray-600' : 'text-gray-400'}`}
+                >
+                  👥
                 </button>
               </div>
 
               {/* Commit button */}
               <button
                 onClick={() => setShowCommitModal(true)}
-                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium"
               >
-                <span>+</span>
-                New Commit
+                + Commit
               </button>
             </div>
           )}
@@ -123,58 +128,33 @@ export function GitPage() {
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-sm">
               <button 
-                onClick={() => {
-                  setSelectedSpace(null);
-                  setSelectedPath('/');
-                }}
+                onClick={() => { setSelectedSpace(null); setSelectedPath('/'); }}
                 className="text-blue-400 hover:underline"
               >
                 All Spaces
               </button>
               <span className="text-gray-500">→</span>
-              <span className="text-white">{selectedSpace.name}</span>
-              {view === 'tree' && selectedPath !== '/' && (
-                <>
-                  <span className="text-gray-500">→</span>
-                  <span className="text-gray-400">{selectedPath}</span>
-                </>
-              )}
+              <span>{selectedSpace.name}</span>
             </div>
 
-            {/* Content Area */}
+            {/* Views */}
             {view === 'tree' && (
-              <FileTree
-                key={`tree-${refreshKey}`}
-                spaceId={selectedSpace.id}
-                branch={selectedBranch}
-                path={selectedPath}
-                onNavigate={setSelectedPath}
-              />
+              <FileTree key={`tree-${refreshKey}`} spaceId={selectedSpace.id} branch={selectedBranch} path={selectedPath} onNavigate={setSelectedPath} />
             )}
-
             {view === 'history' && (
-              <CommitHistory
-                key={`history-${refreshKey}`}
-                spaceId={selectedSpace.id}
-                branch={selectedBranch}
-                onCommitSelect={(commit) => {
-                  console.log('Selected commit:', commit);
-                }}
-              />
+              <CommitHistory key={`history-${refreshKey}`} spaceId={selectedSpace.id} branch={selectedBranch} />
             )}
-
             {view === 'diff' && (
-              <DiffViewer
-                spaceId={selectedSpace.id}
-                fromRef="main"
-                toRef={selectedBranch !== 'main' ? selectedBranch : 'main'}
-              />
+              <DiffViewer spaceId={selectedSpace.id} fromRef="main" toRef={selectedBranch} />
             )}
-
             {view === 'reviews' && (
-              <ReviewList
-                spaceId={selectedSpace.id}
-              />
+              <ReviewList spaceId={selectedSpace.id} />
+            )}
+            {view === 'publish' && (
+              <PublishSettings spaceId={selectedSpace.id} spaceName={selectedSpace.name} />
+            )}
+            {view === 'team' && (
+              <TeamSettings spaceId={selectedSpace.id} />
             )}
           </div>
         )}
