@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { getSpaces, createSpace } from '../../lib/api';
 
 interface Space {
   id: string;
@@ -25,6 +26,8 @@ export function SpaceList({ onSpaceSelect }: SpaceListProps) {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [newSpace, setNewSpace] = useState({ name: '', description: '', visibility: 'private' });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     fetchSpaces();
@@ -32,13 +35,27 @@ export function SpaceList({ onSpaceSelect }: SpaceListProps) {
 
   const fetchSpaces = async () => {
     try {
-      const res = await fetch('/api/git/spaces');
-      const data = await res.json();
+      const data = await getSpaces();
       setSpaces(data.spaces || []);
     } catch (err) {
       console.error('Failed to fetch spaces:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!newSpace.name.trim()) return;
+    setCreating(true);
+    try {
+      await createSpace(newSpace.name, newSpace.description, newSpace.visibility);
+      setShowCreate(false);
+      setNewSpace({ name: '', description: '', visibility: 'private' });
+      fetchSpaces();
+    } catch (err) {
+      console.error('Failed to create space:', err);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -48,6 +65,12 @@ export function SpaceList({ onSpaceSelect }: SpaceListProps) {
       case 'internal': return '🏢';
       default: return '🔒';
     }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
   };
 
   if (loading) {
@@ -72,6 +95,63 @@ export function SpaceList({ onSpaceSelect }: SpaceListProps) {
         </button>
       </div>
 
+      {/* Create Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Create New Space</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newSpace.name}
+                  onChange={(e) => setNewSpace({ ...newSpace, name: e.target.value })}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  placeholder="my-project"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <textarea
+                  value={newSpace.description}
+                  onChange={(e) => setNewSpace({ ...newSpace, description: e.target.value })}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white h-20"
+                  placeholder="Optional description..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Visibility</label>
+                <select
+                  value={newSpace.visibility}
+                  onChange={(e) => setNewSpace({ ...newSpace, visibility: e.target.value })}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                >
+                  <option value="private">🔒 Private</option>
+                  <option value="internal">🏢 Internal</option>
+                  <option value="public">🌐 Public</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setShowCreate(false)}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={creating || !newSpace.name.trim()}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded"
+              >
+                {creating ? 'Creating...' : 'Create Space'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Space Grid */}
       {spaces.length === 0 ? (
         <div className="text-center py-12 bg-gray-800 rounded-lg">
@@ -80,7 +160,7 @@ export function SpaceList({ onSpaceSelect }: SpaceListProps) {
           <p className="text-gray-400 mb-4">Create your first space to start versioning your data</p>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
           >
             Create Space
           </button>
@@ -91,138 +171,26 @@ export function SpaceList({ onSpaceSelect }: SpaceListProps) {
             <div
               key={space.id}
               onClick={() => onSpaceSelect?.(space)}
-              className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 cursor-pointer transition-colors border border-gray-700 hover:border-blue-500"
+              className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-750 border border-gray-700 hover:border-blue-500 transition-colors"
             >
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-lg">{space.name}</h3>
+                <h3 className="font-medium text-blue-400">{space.name}</h3>
                 <span title={space.visibility}>{getVisibilityIcon(space.visibility)}</span>
               </div>
-              
               {space.description && (
-                <p className="text-gray-400 text-sm mb-3 line-clamp-2">{space.description}</p>
+                <p className="text-sm text-gray-400 mb-3 line-clamp-2">{space.description}</p>
               )}
-              
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
-                  <span>🌿</span>
-                  <span>{space.branch_count} branches</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span>📝</span>
-                  <span>{space.snapshot_count} commits</span>
-                </span>
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span>🌿 {space.branch_count} branches</span>
+                <span>📸 {space.snapshot_count} commits</span>
               </div>
-              
-              <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-500">
-                Updated {new Date(space.updated_at).toLocaleDateString()}
+              <div className="text-xs text-gray-600 mt-2">
+                Updated {formatDate(space.updated_at)}
               </div>
             </div>
           ))}
         </div>
       )}
-
-      {/* Create Modal */}
-      {showCreate && (
-        <CreateSpaceModal
-          onClose={() => setShowCreate(false)}
-          onCreated={(space) => {
-            setSpaces([space, ...spaces]);
-            setShowCreate(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-interface CreateSpaceModalProps {
-  onClose: () => void;
-  onCreated: (space: Space) => void;
-}
-
-function CreateSpaceModal({ onClose, onCreated }: CreateSpaceModalProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [visibility, setVisibility] = useState<'private' | 'internal' | 'public'>('private');
-  const [creating, setCreating] = useState(false);
-
-  const handleCreate = async () => {
-    if (!name.trim()) return;
-    
-    setCreating(true);
-    try {
-      const res = await fetch('/api/git/spaces', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, visibility })
-      });
-      const space = await res.json();
-      onCreated(space);
-    } catch (err) {
-      console.error('Failed to create space:', err);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Create New Space</h2>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-              placeholder="my-product-catalog"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-              rows={3}
-              placeholder="What's in this space?"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Visibility</label>
-            <select
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value as any)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-            >
-              <option value="private">🔒 Private</option>
-              <option value="internal">🏢 Internal</option>
-              <option value="public">🌐 Public</option>
-            </select>
-          </div>
-        </div>
-        
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-400 hover:text-white"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={!name.trim() || creating}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg"
-          >
-            {creating ? 'Creating...' : 'Create Space'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

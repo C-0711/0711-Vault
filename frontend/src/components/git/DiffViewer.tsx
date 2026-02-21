@@ -1,24 +1,23 @@
 /**
  * PROJEKT GENESIS: Diff Viewer Component
- * Side-by-side comparison of file changes
+ * Compare two refs (branches, commits)
  */
 
 import React, { useState, useEffect } from 'react';
+import { getDiff, getBranches } from '../../lib/api';
 
-interface DiffLine {
-  type: 'context' | 'addition' | 'deletion';
-  oldLine?: number;
-  newLine?: number;
-  content: string;
+interface Change {
+  path: string;
+  status: 'added' | 'modified' | 'deleted';
 }
 
-interface FileDiff {
-  path: string;
-  status: 'added' | 'modified' | 'deleted' | 'renamed';
-  oldPath?: string;
+interface DiffResult {
+  from_ref: string;
+  to_ref: string;
+  files_changed: number;
   additions: number;
   deletions: number;
-  lines: DiffLine[];
+  changes: Change[];
 }
 
 interface DiffViewerProps {
@@ -27,160 +26,171 @@ interface DiffViewerProps {
   toRef: string;
 }
 
-export function DiffViewer({ spaceId, fromRef, toRef }: DiffViewerProps) {
-  const [diff, setDiff] = useState<{
-    files: FileDiff[];
-    totalAdditions: number;
-    totalDeletions: number;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'split' | 'unified'>('unified');
+export function DiffViewer({ spaceId, fromRef: initialFrom, toRef: initialTo }: DiffViewerProps) {
+  const [fromRef, setFromRef] = useState(initialFrom);
+  const [toRef, setToRef] = useState(initialTo);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [diff, setDiff] = useState<DiffResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDiff();
-  }, [spaceId, fromRef, toRef]);
+    fetchBranches();
+  }, [spaceId]);
+
+  useEffect(() => {
+    if (fromRef && toRef && fromRef !== toRef) {
+      fetchDiff();
+    }
+  }, [fromRef, toRef]);
+
+  const fetchBranches = async () => {
+    try {
+      const data = await getBranches(spaceId);
+      setBranches((data.branches || []).map((b: any) => b.name));
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+    }
+  };
 
   const fetchDiff = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(
-        `/api/git/spaces/${spaceId}/diff?from_ref=${fromRef}&to_ref=${toRef}`
-      );
-      const data = await res.json();
+      const data = await getDiff(spaceId, fromRef, toRef);
       setDiff(data);
-      // Expand first 3 files by default
-      const firstFiles = (data.files || []).slice(0, 3).map((f: FileDiff) => f.path);
-      setExpandedFiles(new Set(firstFiles));
-    } catch (err) {
-      console.error('Failed to fetch diff:', err);
+    } catch (err: any) {
+      setError(err.message || 'Failed to compute diff');
+      setDiff(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleFile = (path: string) => {
-    const newExpanded = new Set(expandedFiles);
-    if (newExpanded.has(path)) {
-      newExpanded.delete(path);
-    } else {
-      newExpanded.add(path);
-    }
-    setExpandedFiles(newExpanded);
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'added': return <span className="text-green-500">A</span>;
-      case 'modified': return <span className="text-yellow-500">M</span>;
-      case 'deleted': return <span className="text-red-500">D</span>;
-      case 'renamed': return <span className="text-blue-500">R</span>;
-      default: return null;
+      case 'added': return '➕';
+      case 'deleted': return '➖';
+      case 'modified': return '📝';
+      default: return '📄';
     }
   };
 
-  const getLineClass = (type: string) => {
-    switch (type) {
-      case 'addition': return 'bg-green-900/30 text-green-300';
-      case 'deletion': return 'bg-red-900/30 text-red-300';
-      default: return '';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'added': return 'text-green-400';
+      case 'deleted': return 'text-red-400';
+      case 'modified': return 'text-yellow-400';
+      default: return 'text-gray-400';
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-      </div>
-    );
-  }
-
-  if (!diff || diff.files.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-400">
-        <div className="text-4xl mb-4">📝</div>
-        <p>No changes between {fromRef} and {toRef}</p>
-      </div>
-    );
-  }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <span className="font-mono text-sm">
-            {fromRef.slice(0, 7)} → {toRef.slice(0, 7)}
-          </span>
-          <span className="text-green-500">+{diff.totalAdditions}</span>
-          <span className="text-red-500">-{diff.totalDeletions}</span>
-          <span className="text-gray-500">{diff.files.length} files</span>
-        </div>
+    <div className="bg-gray-800 rounded-lg p-6">
+      {/* Ref Selectors */}
+      <div className="flex items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode('unified')}
-            className={`px-3 py-1 rounded ${viewMode === 'unified' ? 'bg-gray-700' : ''}`}
+          <label className="text-sm text-gray-400">Base:</label>
+          <select
+            value={fromRef}
+            onChange={(e) => setFromRef(e.target.value)}
+            className="bg-gray-700 rounded px-3 py-1.5 text-sm"
           >
-            Unified
-          </button>
-          <button
-            onClick={() => setViewMode('split')}
-            className={`px-3 py-1 rounded ${viewMode === 'split' ? 'bg-gray-700' : ''}`}
-          >
-            Split
-          </button>
+            {branches.map((branch) => (
+              <option key={branch} value={branch}>{branch}</option>
+            ))}
+          </select>
         </div>
+
+        <span className="text-gray-500">←</span>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-400">Compare:</label>
+          <select
+            value={toRef}
+            onChange={(e) => setToRef(e.target.value)}
+            className="bg-gray-700 rounded px-3 py-1.5 text-sm"
+          >
+            {branches.map((branch) => (
+              <option key={branch} value={branch}>{branch}</option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={() => {
+            setFromRef(toRef);
+            setToRef(fromRef);
+          }}
+          className="text-gray-400 hover:text-white px-2"
+          title="Swap"
+        >
+          ⇄
+        </button>
       </div>
 
-      {/* File list */}
-      <div className="space-y-2">
-        {diff.files.map((file) => (
-          <div key={file.path} className="border border-gray-700 rounded-lg overflow-hidden">
-            {/* File header */}
-            <div
-              onClick={() => toggleFile(file.path)}
-              className="flex items-center justify-between px-4 py-2 bg-gray-800 cursor-pointer hover:bg-gray-750"
-            >
-              <div className="flex items-center gap-3">
-                <span>{expandedFiles.has(file.path) ? '▼' : '▶'}</span>
-                {getStatusIcon(file.status)}
-                <span className="font-mono text-sm">{file.path}</span>
-                {file.oldPath && file.oldPath !== file.path && (
-                  <span className="text-gray-500 text-sm">← {file.oldPath}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-green-500">+{file.additions}</span>
-                <span className="text-red-500">-{file.deletions}</span>
-              </div>
+      {/* Results */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      )}
+
+      {error && (
+        <div className="text-center py-12 text-red-400">
+          <p>{error}</p>
+        </div>
+      )}
+
+      {fromRef === toRef && (
+        <div className="text-center py-12 text-gray-500">
+          <p>Select different branches to compare</p>
+        </div>
+      )}
+
+      {diff && !loading && (
+        <>
+          {/* Summary */}
+          <div className="flex items-center gap-6 mb-6 p-4 bg-gray-700 rounded">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{diff.files_changed}</div>
+              <div className="text-sm text-gray-400">Files Changed</div>
             </div>
-
-            {/* File diff content */}
-            {expandedFiles.has(file.path) && (
-              <div className="overflow-x-auto">
-                <table className="w-full font-mono text-sm">
-                  <tbody>
-                    {file.lines.map((line, i) => (
-                      <tr key={i} className={getLineClass(line.type)}>
-                        <td className="w-12 text-right px-2 text-gray-500 select-none border-r border-gray-700">
-                          {line.oldLine || ''}
-                        </td>
-                        <td className="w-12 text-right px-2 text-gray-500 select-none border-r border-gray-700">
-                          {line.newLine || ''}
-                        </td>
-                        <td className="w-6 text-center select-none">
-                          {line.type === 'addition' ? '+' : line.type === 'deletion' ? '-' : ' '}
-                        </td>
-                        <td className="px-2 whitespace-pre">{line.content}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <div className="text-center text-green-400">
+              <div className="text-2xl font-bold">+{diff.additions}</div>
+              <div className="text-sm">Additions</div>
+            </div>
+            <div className="text-center text-red-400">
+              <div className="text-2xl font-bold">-{diff.deletions}</div>
+              <div className="text-sm">Deletions</div>
+            </div>
           </div>
-        ))}
-      </div>
+
+          {/* File List */}
+          {diff.changes.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No differences between these branches</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {diff.changes.map((change, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-2 hover:bg-gray-700 rounded"
+                >
+                  <span>{getStatusIcon(change.status)}</span>
+                  <span className={getStatusColor(change.status)}>
+                    {change.path}
+                  </span>
+                  <span className="ml-auto text-xs text-gray-500 uppercase">
+                    {change.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

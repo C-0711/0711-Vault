@@ -20,6 +20,7 @@ import Calendar from './pages/Calendar'
 import Assistant from './pages/Assistant'
 import Albums from './pages/Albums'
 import Chat from './pages/Chat'
+import Git from './pages/Git'
 import Sharing from './pages/Sharing'
 import SharedView from './pages/SharedView'
 import Onboarding from './pages/Onboarding'
@@ -94,6 +95,7 @@ function App() {
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/import" element={<Import />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/git" element={<Git />} />
               <Route path="/assistant" element={<Assistant />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Route>

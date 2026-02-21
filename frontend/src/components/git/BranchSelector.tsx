@@ -1,15 +1,16 @@
 /**
  * PROJEKT GENESIS: Branch Selector Component
+ * Dropdown for selecting/creating branches
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { getBranches, createBranch } from '../../lib/api';
 
 interface Branch {
   id: string;
   name: string;
+  head_snapshot_id: string | null;
   protected: boolean;
-  head_message?: string;
-  head_date?: string;
 }
 
 interface BranchSelectorProps {
@@ -20,19 +21,19 @@ interface BranchSelectorProps {
 
 export function BranchSelector({ spaceId, currentBranch, onBranchChange }: BranchSelectorProps) {
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newBranchName, setNewBranchName] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [creating, setCreating] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchBranches();
   }, [spaceId]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -41,100 +42,95 @@ export function BranchSelector({ spaceId, currentBranch, onBranchChange }: Branc
 
   const fetchBranches = async () => {
     try {
-      const res = await fetch(`/api/git/spaces/${spaceId}/branches`);
-      const data = await res.json();
+      const data = await getBranches(spaceId);
       setBranches(data.branches || []);
     } catch (err) {
       console.error('Failed to fetch branches:', err);
     }
   };
 
-  const createBranch = async () => {
-    if (!newBranchName.trim()) return;
-    
+  const handleCreate = async () => {
+    if (!search.trim() || branches.some(b => b.name === search)) return;
+    setCreating(true);
     try {
-      await fetch(`/api/git/spaces/${spaceId}/branches`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newBranchName, from_branch: currentBranch })
-      });
+      await createBranch(spaceId, search, currentBranch);
       await fetchBranches();
-      onBranchChange(newBranchName);
-      setNewBranchName('');
-      setShowCreate(false);
-      setIsOpen(false);
+      onBranchChange(search);
+      setSearch('');
+      setOpen(false);
     } catch (err) {
       console.error('Failed to create branch:', err);
+    } finally {
+      setCreating(false);
     }
   };
 
-  const currentBranchData = branches.find(b => b.name === currentBranch);
+  const filtered = branches.filter(b => 
+    b.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const showCreateOption = search.trim() && !branches.some(b => b.name === search);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div ref={ref} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg border border-gray-600"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-sm"
       >
         <span>🌿</span>
-        <span className="font-medium">{currentBranch}</span>
-        {currentBranchData?.protected && <span className="text-yellow-500">🔒</span>}
+        <span>{currentBranch}</span>
         <span className="text-gray-400">▼</span>
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-72 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+      {open && (
+        <div className="absolute top-full mt-1 left-0 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
           <div className="p-2 border-b border-gray-700">
             <input
               type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Find or create branch..."
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
-              value={newBranchName}
-              onChange={(e) => setNewBranchName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newBranchName) {
-                  createBranch();
-                }
-              }}
+              className="w-full bg-gray-700 rounded px-3 py-1.5 text-sm"
+              autoFocus
             />
           </div>
 
           <div className="max-h-64 overflow-y-auto">
-            {branches.map((branch) => (
+            {showCreateOption && (
+              <button
+                onClick={handleCreate}
+                disabled={creating}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2 text-green-400"
+              >
+                <span>+</span>
+                <span>Create branch: <strong>{search}</strong></span>
+              </button>
+            )}
+
+            {filtered.map((branch) => (
               <button
                 key={branch.id}
                 onClick={() => {
                   onBranchChange(branch.name);
-                  setIsOpen(false);
+                  setOpen(false);
+                  setSearch('');
                 }}
-                className={`w-full text-left px-3 py-2 hover:bg-gray-700 flex items-center justify-between ${
+                className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2 ${
                   branch.name === currentBranch ? 'bg-gray-700' : ''
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  {branch.name === currentBranch && <span className="text-green-500">✓</span>}
-                  <span>{branch.name}</span>
-                  {branch.protected && <span className="text-yellow-500 text-xs">🔒</span>}
-                </div>
-                {branch.head_message && (
-                  <span className="text-xs text-gray-500 truncate max-w-32">
-                    {branch.head_message}
-                  </span>
-                )}
+                <span>{branch.protected ? '🔒' : '🌿'}</span>
+                <span>{branch.name}</span>
+                {branch.name === currentBranch && <span className="ml-auto">✓</span>}
               </button>
             ))}
-          </div>
 
-          {newBranchName && !branches.find(b => b.name === newBranchName) && (
-            <div className="p-2 border-t border-gray-700">
-              <button
-                onClick={createBranch}
-                className="w-full text-left px-3 py-2 hover:bg-gray-700 rounded text-blue-400"
-              >
-                <span>+ Create branch "{newBranchName}" from {currentBranch}</span>
-              </button>
-            </div>
-          )}
+            {filtered.length === 0 && !showCreateOption && (
+              <div className="px-3 py-2 text-sm text-gray-500">
+                No branches found
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
