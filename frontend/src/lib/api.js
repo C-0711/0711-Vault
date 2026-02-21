@@ -217,3 +217,88 @@ class VaultAPI {
 
 export const api = new VaultAPI();
 export default api;
+
+// ============================================
+// GIT API - VAULT-GIT VERSIONING
+// ============================================
+
+// Spaces (repositories)
+export async function getSpaces(tenantId = null) {
+  const tenant = tenantId || localStorage.getItem('vault_tenant_id') || '00000000-0000-0000-0000-000000000001';
+  return api.request(`/git/spaces?tenant_id=${tenant}`);
+}
+
+export async function createSpace(name, description = '', visibility = 'private') {
+  const tenant = localStorage.getItem('vault_tenant_id') || '00000000-0000-0000-0000-000000000001';
+  const userId = localStorage.getItem('vault_user_id') || '00000000-0000-0000-0000-000000000099';
+  return api.request(`/git/spaces?tenant_id=${tenant}&user_id=${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ name, description, visibility }),
+  });
+}
+
+export async function getSpace(spaceId) {
+  return api.request(`/git/spaces/${spaceId}`);
+}
+
+// Branches
+export async function getBranches(spaceId) {
+  return api.request(`/git/spaces/${spaceId}/branches`);
+}
+
+export async function createBranch(spaceId, name, fromBranch = 'main') {
+  const userId = localStorage.getItem('vault_user_id') || '00000000-0000-0000-0000-000000000099';
+  return api.request(`/git/spaces/${spaceId}/branches?user_id=${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ name, from_branch: fromBranch }),
+  });
+}
+
+// Snapshots (commits)
+export async function createSnapshot(spaceId, message, files, branch = 'main') {
+  const userId = localStorage.getItem('vault_user_id') || '00000000-0000-0000-0000-000000000099';
+  return api.request(`/git/spaces/${spaceId}/snapshots?branch=${encodeURIComponent(branch)}&user_id=${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ message, files }),
+  });
+}
+
+export async function getHistory(spaceId, branch = 'main', limit = 50) {
+  return api.request(`/git/spaces/${spaceId}/history?branch=${encodeURIComponent(branch)}&limit=${limit}`);
+}
+
+// Tree & Blobs
+export async function getTree(spaceId, ref = 'main', path = '/') {
+  return api.request(`/git/spaces/${spaceId}/tree?ref=${encodeURIComponent(ref)}&path=${encodeURIComponent(path)}`);
+}
+
+export async function getBlob(spaceId, path, ref = 'main') {
+  return api.request(`/git/spaces/${spaceId}/blob/${encodeURIComponent(path)}?ref=${encodeURIComponent(ref)}`);
+}
+
+// Diff
+export async function getDiff(spaceId, fromRef, toRef) {
+  return api.request(`/git/spaces/${spaceId}/diff?from_ref=${encodeURIComponent(fromRef)}&to_ref=${encodeURIComponent(toRef)}`);
+}
+
+// Reviews (Pull Requests)
+export async function getReviews(spaceId, status = null) {
+  let url = `/git/spaces/${spaceId}/reviews`;
+  if (status) url += `?status=${status}`;
+  return api.request(url);
+}
+
+export async function createReview(spaceId, title, sourceBranch, targetBranch = 'main', description = '') {
+  const userId = localStorage.getItem('vault_user_id') || '00000000-0000-0000-0000-000000000099';
+  return api.request(`/git/spaces/${spaceId}/reviews?user_id=${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ title, source_branch: sourceBranch, target_branch: targetBranch, description }),
+  });
+}
+
+export async function mergeReview(spaceId, reviewId) {
+  const userId = localStorage.getItem('vault_user_id') || '00000000-0000-0000-0000-000000000099';
+  return api.request(`/git/spaces/${spaceId}/reviews/${reviewId}/merge?user_id=${userId}`, {
+    method: 'POST',
+  });
+}

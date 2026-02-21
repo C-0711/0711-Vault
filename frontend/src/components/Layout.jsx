@@ -114,6 +114,9 @@ export default function Layout() {
               Documents
             </SidebarLink>
             <SidebarLink to="/albums" icon="📁">
+            <SidebarLink to="/git" icon="📦">
+              Spaces
+            </SidebarLink>
               Albums
             </SidebarLink>
             
