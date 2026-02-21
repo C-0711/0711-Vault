@@ -8,6 +8,8 @@ import { SpaceList } from '../components/git/SpaceList';
 import { BranchSelector } from '../components/git/BranchSelector';
 import { FileTree } from '../components/git/FileTree';
 import { DiffViewer } from '../components/git/DiffViewer';
+import { CommitHistory } from '../components/git/CommitHistory';
+import { CommitModal } from '../components/git/CommitModal';
 
 interface Space {
   id: string;
@@ -18,11 +20,19 @@ interface Space {
   visibility: string;
 }
 
+type ViewMode = 'tree' | 'history' | 'diff';
+
 export function GitPage() {
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>('main');
   const [selectedPath, setSelectedPath] = useState<string>('/');
-  const [view, setView] = useState<'tree' | 'history' | 'diff'>('tree');
+  const [view, setView] = useState<ViewMode>('tree');
+  const [showCommitModal, setShowCommitModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleCommit = () => {
+    setRefreshKey(k => k + 1);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -37,7 +47,7 @@ export function GitPage() {
             {selectedSpace && (
               <>
                 <span className="text-gray-500">/</span>
-                <span className="text-blue-400">{selectedSpace.name}</span>
+                <span className="text-blue-400 font-medium">{selectedSpace.name}</span>
                 <span className="text-gray-500">/</span>
                 <BranchSelector
                   spaceId={selectedSpace.id}
@@ -49,24 +59,42 @@ export function GitPage() {
           </div>
           
           {selectedSpace && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* View toggles */}
+              <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1">
+                <button
+                  onClick={() => setView('tree')}
+                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                    view === 'tree' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  📁 Files
+                </button>
+                <button
+                  onClick={() => setView('history')}
+                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                    view === 'history' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  📜 History
+                </button>
+                <button
+                  onClick={() => setView('diff')}
+                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                    view === 'diff' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  ⚡ Compare
+                </button>
+              </div>
+
+              {/* Commit button */}
               <button
-                onClick={() => setView('tree')}
-                className={`px-3 py-1 rounded ${view === 'tree' ? 'bg-blue-600' : 'bg-gray-700'}`}
+                onClick={() => setShowCommitModal(true)}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"
               >
-                📁 Files
-              </button>
-              <button
-                onClick={() => setView('history')}
-                className={`px-3 py-1 rounded ${view === 'history' ? 'bg-blue-600' : 'bg-gray-700'}`}
-              >
-                📜 History
-              </button>
-              <button
-                onClick={() => setView('diff')}
-                className={`px-3 py-1 rounded ${view === 'diff' ? 'bg-blue-600' : 'bg-gray-700'}`}
-              >
-                ⚡ Diff
+                <span>+</span>
+                New Commit
               </button>
             </div>
           )}
@@ -79,20 +107,24 @@ export function GitPage() {
           <SpaceList onSpaceSelect={(space) => {
             setSelectedSpace(space);
             setSelectedBranch(space.default_branch || 'main');
+            setSelectedPath('/');
           }} />
         ) : (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="space-y-6">
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-sm">
               <button 
-                onClick={() => setSelectedSpace(null)}
+                onClick={() => {
+                  setSelectedSpace(null);
+                  setSelectedPath('/');
+                }}
                 className="text-blue-400 hover:underline"
               >
                 All Spaces
               </button>
               <span className="text-gray-500">→</span>
-              <span>{selectedSpace.name}</span>
-              {selectedPath !== '/' && (
+              <span className="text-white">{selectedSpace.name}</span>
+              {view === 'tree' && selectedPath !== '/' && (
                 <>
                   <span className="text-gray-500">→</span>
                   <span className="text-gray-400">{selectedPath}</span>
@@ -103,6 +135,7 @@ export function GitPage() {
             {/* Content Area */}
             {view === 'tree' && (
               <FileTree
+                key={`tree-${refreshKey}`}
                 spaceId={selectedSpace.id}
                 branch={selectedBranch}
                 path={selectedPath}
@@ -111,22 +144,36 @@ export function GitPage() {
             )}
 
             {view === 'history' && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <h2 className="text-lg font-medium mb-4">Commit History</h2>
-                <p className="text-gray-400">Coming soon: Interactive commit history</p>
-              </div>
+              <CommitHistory
+                key={`history-${refreshKey}`}
+                spaceId={selectedSpace.id}
+                branch={selectedBranch}
+                onCommitSelect={(commit) => {
+                  console.log('Selected commit:', commit);
+                }}
+              />
             )}
 
             {view === 'diff' && (
               <DiffViewer
                 spaceId={selectedSpace.id}
                 fromRef="main"
-                toRef={selectedBranch}
+                toRef={selectedBranch !== 'main' ? selectedBranch : 'main'}
               />
             )}
           </div>
         )}
       </main>
+
+      {/* Commit Modal */}
+      {showCommitModal && selectedSpace && (
+        <CommitModal
+          spaceId={selectedSpace.id}
+          branch={selectedBranch}
+          onClose={() => setShowCommitModal(false)}
+          onCommit={handleCommit}
+        />
+      )}
     </div>
   );
 }
