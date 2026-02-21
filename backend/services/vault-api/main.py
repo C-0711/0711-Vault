@@ -51,6 +51,7 @@ from routers.sharing import router as sharing_router
 from routers.versions import router as versions_router
 from routers.git import router as git_router, init_git_router
 from routers.publish import router as publish_router, init_publish_router
+from routers.pipeline import router as pipeline_router
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
@@ -143,6 +144,7 @@ app.include_router(quotas_router)
 app.include_router(sharing_router)
 app.include_router(git_router)
 app.include_router(publish_router)
+app.include_router(pipeline_router)
 app.include_router(versions_router)
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
