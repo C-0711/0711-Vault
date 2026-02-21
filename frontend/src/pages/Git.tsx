@@ -10,6 +10,7 @@ import { FileTree } from '../components/git/FileTree';
 import { DiffViewer } from '../components/git/DiffViewer';
 import { CommitHistory } from '../components/git/CommitHistory';
 import { CommitModal } from '../components/git/CommitModal';
+import { ReviewList } from '../components/git/ReviewList';
 
 interface Space {
   id: string;
@@ -20,7 +21,7 @@ interface Space {
   visibility: string;
 }
 
-type ViewMode = 'tree' | 'history' | 'diff';
+type ViewMode = 'tree' | 'history' | 'diff' | 'reviews';
 
 export function GitPage() {
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
@@ -85,6 +86,14 @@ export function GitPage() {
                   }`}
                 >
                   ⚡ Compare
+                </button>
+                <button
+                  onClick={() => setView('reviews')}
+                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                    view === 'reviews' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  🔀 Reviews
                 </button>
               </div>
 
@@ -159,6 +168,12 @@ export function GitPage() {
                 spaceId={selectedSpace.id}
                 fromRef="main"
                 toRef={selectedBranch !== 'main' ? selectedBranch : 'main'}
+              />
+            )}
+
+            {view === 'reviews' && (
+              <ReviewList
+                spaceId={selectedSpace.id}
               />
             )}
           </div>
