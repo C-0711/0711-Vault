@@ -14,3 +14,4 @@ sqlalchemy[asyncio]>=2.0.0
 neo4j>=5.0.0
 ollama>=0.1.0
 structlog>=24.0.0
+aiohttp

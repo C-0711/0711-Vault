@@ -12,8 +12,8 @@ import asyncpg
 
 # Import MCP server
 import sys
-
-from .mcp_server import VaultMCPServer
+sys.path.insert(0, "/home/christoph.bertsch/0711-Vault/backend/services/mcp")
+from mcp_server import VaultMCPServer
 
 router = APIRouter(prefix="/mcp", tags=["MCP"])
 

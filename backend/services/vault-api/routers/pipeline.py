@@ -16,9 +16,9 @@ from datetime import datetime
 
 # Import pipeline components (adjust path as needed)
 import sys
-sys.path.insert(0, "/home/christoph.bertsch/0711-Vault/backend/services/pipeline")
-from redis_queue import RedisJobQueue, PipelineJob, JobPriority, get_queue
-from gpu_orchestrator import get_orchestrator
+
+from .redis_queue import RedisJobQueue, PipelineJob, JobPriority, get_queue
+from .gpu_orchestrator import get_orchestrator
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
