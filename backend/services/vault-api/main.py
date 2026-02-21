@@ -49,6 +49,7 @@ from routers.webhooks import router as webhooks_router
 from routers.quotas import router as quotas_router
 from routers.sharing import router as sharing_router
 from routers.versions import router as versions_router
+from routers.git import router as git_router, init_git_router
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@localhost:5432/vault")
@@ -75,6 +76,7 @@ async def lifespan(app: FastAPI):
     try:
         db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
         print("✅ PostgreSQL connected")
+        init_git_router(db_pool)
     except Exception as e:
         print(f"⚠️ PostgreSQL connection failed: {e}")
     
@@ -137,6 +139,7 @@ app.include_router(folders_router)
 app.include_router(webhooks_router)
 app.include_router(quotas_router)
 app.include_router(sharing_router)
+app.include_router(git_router)
 app.include_router(versions_router)
 if IMESSAGE_AVAILABLE:
     app.include_router(imessage_router)
