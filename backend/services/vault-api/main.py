@@ -62,7 +62,7 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3:latest")
 VISION_MODEL = os.getenv("VISION_MODEL", "llama4:latest")
 # MinIO removed - Albert Storage uses PostgreSQL + ChaCha20-Poly1305
-JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
+JWT_SECRET = os.environ["JWT_SECRET"]  # REQUIRED - no default
 
 # Global connections
 db_pool = None
