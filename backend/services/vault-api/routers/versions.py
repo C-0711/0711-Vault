@@ -1,108 +1,168 @@
 """
-File Versioning API for 0711-Vault
-Track and restore previous file versions
+V-12: File Versioning System for 0711-Vault
+Tracks file versions with restore capability
+
+Path: backend/services/vault-api/routers/versions.py
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import hashlib
 import uuid
 
 router = APIRouter(prefix="/versions", tags=["File Versioning"])
 
-class Version(BaseModel):
+class FileVersion(BaseModel):
     id: str
     file_id: str
     version_number: int
     size_bytes: int
     checksum: str
     created_at: datetime
-    created_by: Optional[str] = None
-    comment: Optional[str] = None
+    created_by: Optional[str]
+    comment: Optional[str]
+    storage_path: str
 
-class VersionCreate(BaseModel):
-    file_id: str
-    comment: Optional[str] = None
+class VersionDiff(BaseModel):
+    version_a: int
+    version_b: int
+    size_diff: int
+    changed_at: datetime
 
-# Storage
-versions_db: dict = {}  # file_id -> list of versions
+# In-memory storage (replace with DB)
+versions_db: dict[str, List[FileVersion]] = {}
+max_versions_per_file = 50
 
-@router.get("/{file_id}", response_model=List[Version])
-async def list_versions(file_id: str, limit: int = 50):
-    """List all versions of a file"""
-    file_versions = versions_db.get(file_id, [])
-    return file_versions[-limit:]
+def compute_checksum(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
-@router.get("/{file_id}/{version_number}", response_model=Version)
+@router.get("/{file_id}", response_model=List[FileVersion])
+async def list_versions(file_id: str, limit: int = 20):
+    """Get version history for a file"""
+    versions = versions_db.get(file_id, [])
+    return sorted(versions, key=lambda v: v.version_number, reverse=True)[:limit]
+
+@router.get("/{file_id}/{version_number}", response_model=FileVersion)
 async def get_version(file_id: str, version_number: int):
-    """Get specific version"""
-    file_versions = versions_db.get(file_id, [])
-    for v in file_versions:
-        if v["version_number"] == version_number:
-            return Version(**v)
+    """Get specific version details"""
+    versions = versions_db.get(file_id, [])
+    for v in versions:
+        if v.version_number == version_number:
+            return v
     raise HTTPException(status_code=404, detail="Version not found")
 
-@router.post("/{file_id}/restore/{version_number}")
-async def restore_version(file_id: str, version_number: int):
-    """Restore file to a previous version"""
-    file_versions = versions_db.get(file_id, [])
-    target = None
-    for v in file_versions:
-        if v["version_number"] == version_number:
-            target = v
+@router.post("/{file_id}", response_model=FileVersion)
+async def create_version(
+    file_id: str,
+    file: UploadFile = File(...),
+    comment: Optional[str] = None,
+    user_id: Optional[str] = None,
+):
+    """Upload new version of a file"""
+    content = await file.read()
+    checksum = compute_checksum(content)
+    
+    # Get current versions
+    versions = versions_db.get(file_id, [])
+    
+    # Check if content actually changed
+    if versions and versions[-1].checksum == checksum:
+        raise HTTPException(status_code=400, detail="Content unchanged, no new version created")
+    
+    # Calculate version number
+    version_number = (versions[-1].version_number + 1) if versions else 1
+    
+    # Create storage path (in production, save to actual storage)
+    storage_path = f"/versions/{file_id}/{version_number}/{file.filename}"
+    
+    new_version = FileVersion(
+        id=str(uuid.uuid4()),
+        file_id=file_id,
+        version_number=version_number,
+        size_bytes=len(content),
+        checksum=checksum,
+        created_at=datetime.now(),
+        created_by=user_id,
+        comment=comment,
+        storage_path=storage_path,
+    )
+    
+    # Add to versions (enforce max versions)
+    versions.append(new_version)
+    if len(versions) > max_versions_per_file:
+        versions = versions[-max_versions_per_file:]
+    
+    versions_db[file_id] = versions
+    return new_version
+
+@router.post("/{file_id}/{version_number}/restore")
+async def restore_version(file_id: str, version_number: int, user_id: Optional[str] = None):
+    """Restore a previous version as the current version"""
+    versions = versions_db.get(file_id, [])
+    
+    target_version = None
+    for v in versions:
+        if v.version_number == version_number:
+            target_version = v
             break
     
-    if not target:
+    if not target_version:
         raise HTTPException(status_code=404, detail="Version not found")
     
     # Create new version from restored content
-    new_version = {
-        "id": str(uuid.uuid4()),
-        "file_id": file_id,
-        "version_number": len(file_versions) + 1,
-        "size_bytes": target["size_bytes"],
-        "checksum": target["checksum"],
-        "created_at": datetime.now(),
-        "comment": f"Restored from version {version_number}",
-    }
+    new_version_number = versions[-1].version_number + 1
     
-    file_versions.append(new_version)
-    versions_db[file_id] = file_versions
+    restored_version = FileVersion(
+        id=str(uuid.uuid4()),
+        file_id=file_id,
+        version_number=new_version_number,
+        size_bytes=target_version.size_bytes,
+        checksum=target_version.checksum,
+        created_at=datetime.now(),
+        created_by=user_id,
+        comment=f"Restored from version {version_number}",
+        storage_path=f"/versions/{file_id}/{new_version_number}/restored",
+    )
     
-    return {"status": "restored", "new_version": new_version["version_number"]}
+    versions.append(restored_version)
+    versions_db[file_id] = versions
+    
+    return {"status": "restored", "new_version": new_version_number}
 
 @router.delete("/{file_id}/{version_number}")
 async def delete_version(file_id: str, version_number: int):
-    """Delete a specific version (admin only)"""
-    file_versions = versions_db.get(file_id, [])
+    """Delete a specific version (cannot delete latest)"""
+    versions = versions_db.get(file_id, [])
     
-    if len(file_versions) <= 1:
-        raise HTTPException(status_code=400, detail="Cannot delete last version")
+    if not versions:
+        raise HTTPException(status_code=404, detail="File not found")
     
-    versions_db[file_id] = [v for v in file_versions if v["version_number"] != version_number]
+    if versions[-1].version_number == version_number:
+        raise HTTPException(status_code=400, detail="Cannot delete the latest version")
+    
+    versions_db[file_id] = [v for v in versions if v.version_number != version_number]
     return {"status": "deleted"}
 
-@router.get("/{file_id}/diff/{v1}/{v2}")
-async def compare_versions(file_id: str, v1: int, v2: int):
-    """Compare two versions (metadata only)"""
-    file_versions = versions_db.get(file_id, [])
-    version1 = None
-    version2 = None
+@router.get("/{file_id}/diff/{version_a}/{version_b}", response_model=VersionDiff)
+async def compare_versions(file_id: str, version_a: int, version_b: int):
+    """Compare two versions"""
+    versions = versions_db.get(file_id, [])
     
-    for v in file_versions:
-        if v["version_number"] == v1:
-            version1 = v
-        if v["version_number"] == v2:
-            version2 = v
+    va = vb = None
+    for v in versions:
+        if v.version_number == version_a:
+            va = v
+        if v.version_number == version_b:
+            vb = v
     
-    if not version1 or not version2:
-        raise HTTPException(status_code=404, detail="Version not found")
+    if not va or not vb:
+        raise HTTPException(status_code=404, detail="One or both versions not found")
     
-    return {
-        "file_id": file_id,
-        "v1": {"number": v1, "size": version1["size_bytes"], "created": version1["created_at"]},
-        "v2": {"number": v2, "size": version2["size_bytes"], "created": version2["created_at"]},
-        "size_diff": version2["size_bytes"] - version1["size_bytes"],
-        "checksum_match": version1["checksum"] == version2["checksum"],
-    }
+    return VersionDiff(
+        version_a=version_a,
+        version_b=version_b,
+        size_diff=vb.size_bytes - va.size_bytes,
+        changed_at=vb.created_at,
+    )
