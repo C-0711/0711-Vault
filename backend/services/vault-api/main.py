@@ -28,8 +28,7 @@ from storage_albert import (
 # Database module (for assistant routes)
 from database import init_db as init_assistant_db
 
-# Stripe billing
-from stripe_routes import router as stripe_router
+# Stripe removed — billing handled by 0711-I platform
 
 # iMessage import (macOS only)
 try:
@@ -143,7 +142,6 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(stripe_router)
 app.include_router(calendar_router)
 app.include_router(assistant_router, prefix="/assistant", tags=["AI Assistant"])
 app.include_router(s3_router, tags=["S3 Compatible"])

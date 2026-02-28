@@ -1,7 +1,7 @@
 """
 Personal AI Assistant - The brain of 0711-Vault
 Answers questions about YOUR photos, documents, and memories.
-Runs locally. No cloud. No Big Tech. Just you.
+Uses 0711-AI gateway for chat (multi-model), Ollama for embeddings.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -13,12 +13,17 @@ from sqlalchemy import text
 import json
 import asyncio
 import httpx
+import os
 
 from config import settings
 from database import get_db, get_neo4j, get_ollama, get_redis
 from auth import get_current_user
 
 router = APIRouter()
+
+# 0711-AI Gateway for chat (multi-model: Claude, Ollama, etc.)
+AI_GATEWAY_URL = os.getenv("AI_GATEWAY_URL", "http://o711-ai-gateway:8000")
+AI_GATEWAY_MODEL = os.getenv("AI_GATEWAY_MODEL", "llama4")
 
 
 # ===========================================
@@ -190,17 +195,26 @@ Return JSON with:
 Query: "{query}"
 
 JSON response:"""
-    
+
     try:
-        response = await ollama.generate(
-            model=settings.VISION_MODEL,  # Use the smart model
-            prompt=prompt,
-            format="json",
-            stream=False
-        )
-        return json.loads(response['response'])
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{AI_GATEWAY_URL}/ai/chat",
+                json={
+                    "model": AI_GATEWAY_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": False,
+                    "max_tokens": 512,
+                    "temperature": 0.1,
+                },
+                timeout=30,
+            )
+            if r.status_code == 200:
+                text = r.json().get("text", "{}")
+                return json.loads(text)
     except:
-        return {"intent": "general_question", "entities": {}}
+        pass
+    return {"intent": "general_question", "entities": {}}
 
 
 # ===========================================
@@ -285,14 +299,22 @@ You are running 100% locally - their data never leaves their device. You are THE
     
     messages.append({"role": "user", "content": user_message})
     
-    # Generate response
+    # Generate response via 0711-AI gateway
     try:
-        response = await ollama.chat(
-            model=settings.VISION_MODEL,
-            messages=messages,
-            stream=False
-        )
-        assistant_response = response['message']['content']
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{AI_GATEWAY_URL}/ai/chat",
+                json={
+                    "model": AI_GATEWAY_MODEL,
+                    "messages": messages,
+                    "stream": False,
+                    "max_tokens": 4096,
+                },
+                timeout=120,
+            )
+            if r.status_code != 200:
+                raise Exception(f"AI gateway returned {r.status_code}: {r.text[:200]}")
+            assistant_response = r.json().get("text", "")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
     
@@ -345,14 +367,31 @@ Be warm, helpful, and honest when you don't have information."""
     
     async def generate():
         try:
-            async for chunk in await ollama.chat(
-                model=settings.VISION_MODEL,
-                messages=messages,
-                stream=True
-            ):
-                if chunk.get('message', {}).get('content'):
-                    yield f"data: {json.dumps({'content': chunk['message']['content']})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
+            async with httpx.AsyncClient() as client:
+                async with client.stream(
+                    "POST",
+                    f"{AI_GATEWAY_URL}/ai/chat",
+                    json={
+                        "model": AI_GATEWAY_MODEL,
+                        "messages": messages,
+                        "stream": True,
+                        "max_tokens": 4096,
+                    },
+                    timeout=120,
+                ) as r:
+                    async for line in r.aiter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[DONE]":
+                            yield f"data: {json.dumps({'done': True})}\n\n"
+                            break
+                        try:
+                            parsed = json.loads(data)
+                            if parsed.get("type") == "delta" and parsed.get("text"):
+                                yield f"data: {json.dumps({'content': parsed['text']})}\n\n"
+                        except json.JSONDecodeError:
+                            pass
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
     

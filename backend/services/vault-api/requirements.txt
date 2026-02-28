@@ -9,7 +9,6 @@ python-multipart>=0.0.6
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 cryptography>=42.0.0
-stripe>=7.0.0
 sqlalchemy[asyncio]>=2.0.0
 neo4j>=5.0.0
 ollama>=0.1.0
