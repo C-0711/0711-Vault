@@ -85,6 +85,33 @@ class VaultAPI {
     }
   }
 
+  // OAuth2 / 0711-I
+  async oauthTokenExchange(code, redirectUri, codeVerifier = null) {
+    const body = { code, redirect_uri: redirectUri };
+    if (codeVerifier) body.code_verifier = codeVerifier;
+    const result = await this.request('/auth/oauth/token', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    this.setToken(result.access_token);
+    return result;
+  }
+
+  async setupVault(authHash, salt, encryptedMasterKey) {
+    return this.request('/auth/setup-vault', {
+      method: 'POST',
+      body: JSON.stringify({
+        auth_hash: authHash,
+        salt,
+        encrypted_master_key: encryptedMasterKey,
+      }),
+    });
+  }
+
+  async getVaultInfo() {
+    return this.request('/auth/vault-info');
+  }
+
   // Vault Items
   async getItems(type = null, limit = 100, offset = 0) {
     let url = `/vault/items?limit=${limit}&offset=${offset}`;

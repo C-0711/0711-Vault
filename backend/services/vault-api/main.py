@@ -64,6 +64,11 @@ VISION_MODEL = os.getenv("VISION_MODEL", "llama4:latest")
 # MinIO removed - Albert Storage uses PostgreSQL + ChaCha20-Poly1305
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
 
+# 0711-I OAuth2/OIDC configuration
+O711I_ISSUER = os.getenv("O711I_ISSUER", "https://id.0711.io")
+O711I_CLIENT_ID = os.getenv("O711I_CLIENT_ID", "vaultclaw")
+O711I_CLIENT_SECRET = os.getenv("O711I_CLIENT_SECRET", "")
+
 # Global connections
 db_pool = None
 redis_client = None
@@ -160,18 +165,37 @@ if IMESSAGE_AVAILABLE:
 # AUTH HELPERS
 # ===========================================
 
+# OIDC discovery cache
+_oidc_config = None
+_oidc_config_fetched = 0
+
+async def _get_oidc_config():
+    """Fetch and cache OIDC discovery document."""
+    global _oidc_config, _oidc_config_fetched
+    import time
+    now = time.time()
+    if _oidc_config and (now - _oidc_config_fetched) < 3600:
+        return _oidc_config
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{O711I_ISSUER}/.well-known/openid-configuration", timeout=10)
+        r.raise_for_status()
+        _oidc_config = r.json()
+        _oidc_config_fetched = now
+        return _oidc_config
+
+
 async def get_current_user(authorization: str = Header(None)):
-    """Validate token and return user_id."""
+    """Validate token and return user_id. Accepts Redis opaque tokens."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing authorization")
-    
+
     token = authorization.split(" ")[1]
-    
+
     if redis_client:
         user_id = await redis_client.get(f"token:{token}")
         if user_id:
             return user_id.decode()
-    
+
     raise HTTPException(status_code=401, detail="Invalid token")
 
 
@@ -193,6 +217,25 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
+    encrypted_master_key: str
+
+class OAuthTokenRequest(BaseModel):
+    code: str
+    redirect_uri: str
+    code_verifier: Optional[str] = None
+
+class OAuthLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: str
+    has_vault: bool
+    encrypted_master_key: Optional[str] = None
+    salt: Optional[str] = None
+    email: str
+
+class SetupVaultRequest(BaseModel):
+    auth_hash: str
+    salt: str
     encrypted_master_key: str
 
 class VaultItemCreate(BaseModel):
@@ -346,6 +389,175 @@ async def logout(user_id: str = Depends(get_current_user), authorization: str = 
         if redis_client:
             await redis_client.delete(f"token:{token}")
     return {"message": "Logged out"}
+
+
+# ===========================================
+# OAUTH2 / 0711-I ENDPOINTS
+# ===========================================
+
+@app.post("/auth/oauth/token", response_model=OAuthLoginResponse)
+async def oauth_token_exchange(request: OAuthTokenRequest):
+    """Exchange OAuth2 authorization code for a Vaultclaw session.
+
+    Flow:
+    1. Frontend redirects user to id.0711.io/oauth/authorize
+    2. User authenticates, redirect back with ?code=...
+    3. Frontend POSTs code here
+    4. We exchange code for 0711-I tokens, extract user info
+    5. Find or create local user, issue Redis session token
+    6. Return token + vault status (has_vault / needs setup)
+    """
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    # 1. Get OIDC endpoints
+    try:
+        oidc = await _get_oidc_config()
+        token_endpoint = oidc["token_endpoint"]
+        userinfo_endpoint = oidc["userinfo_endpoint"]
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"OIDC discovery failed: {e}")
+
+    # 2. Exchange authorization code for tokens
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": request.code,
+        "redirect_uri": request.redirect_uri,
+        "client_id": O711I_CLIENT_ID,
+        "client_secret": O711I_CLIENT_SECRET,
+    }
+    if request.code_verifier:
+        token_data["code_verifier"] = request.code_verifier
+
+    async with httpx.AsyncClient() as client:
+        tr = await client.post(token_endpoint, data=token_data, timeout=15)
+        if tr.status_code != 200:
+            detail = tr.text[:200] if tr.text else "Token exchange failed"
+            raise HTTPException(status_code=401, detail=detail)
+        tokens = tr.json()
+
+    # 3. Get user info from 0711-I
+    access_token_0711 = tokens.get("access_token")
+    if not access_token_0711:
+        raise HTTPException(status_code=502, detail="No access_token from 0711-I")
+
+    async with httpx.AsyncClient() as client:
+        ur = await client.get(
+            userinfo_endpoint,
+            headers={"Authorization": f"Bearer {access_token_0711}"},
+            timeout=10,
+        )
+        if ur.status_code != 200:
+            raise HTTPException(status_code=502, detail="Userinfo fetch failed")
+        userinfo = ur.json()
+
+    o711i_sub = userinfo.get("sub")
+    email = userinfo.get("email")
+    if not o711i_sub or not email:
+        raise HTTPException(status_code=502, detail="Incomplete userinfo from 0711-I")
+
+    # 4. Find or create local user
+    async with db_pool.acquire() as conn:
+        # Try by o711i_sub first, then by email
+        user = await conn.fetchrow(
+            "SELECT id, email, auth_hash, salt, encrypted_master_key, o711i_sub FROM users WHERE o711i_sub = $1",
+            o711i_sub,
+        )
+        if not user:
+            user = await conn.fetchrow(
+                "SELECT id, email, auth_hash, salt, encrypted_master_key, o711i_sub FROM users WHERE email = $1",
+                email,
+            )
+
+        if user:
+            user_id = str(user["id"])
+            # Link o711i_sub if not yet linked
+            if not user["o711i_sub"]:
+                await conn.execute(
+                    "UPDATE users SET o711i_sub = $1 WHERE id = $2", o711i_sub, user["id"]
+                )
+            has_vault = user["encrypted_master_key"] is not None
+        else:
+            # Create new user (vault not set up yet)
+            user_id = str(await conn.fetchval(
+                "INSERT INTO users (email, o711i_sub) VALUES ($1, $2) RETURNING id",
+                email, o711i_sub,
+            ))
+            has_vault = False
+            user = None
+
+        # Update last login
+        await conn.execute(
+            "UPDATE users SET last_login = NOW() WHERE id = $1",
+            uuid.UUID(user_id),
+        )
+
+    # 5. Issue Redis session token
+    token = secrets.token_urlsafe(32)
+    if redis_client:
+        await redis_client.setex(f"token:{token}", 86400, user_id)
+
+    return OAuthLoginResponse(
+        access_token=token,
+        user_id=user_id,
+        has_vault=has_vault,
+        encrypted_master_key=user["encrypted_master_key"] if user else None,
+        salt=user["salt"] if user else None,
+        email=email,
+    )
+
+
+@app.post("/auth/setup-vault")
+async def setup_vault(request: SetupVaultRequest, user_id: str = Depends(get_current_user)):
+    """Set up vault encryption for an OAuth user who doesn't have one yet.
+
+    Called after first OAuth login. The frontend generates a vault password,
+    derives auth_hash + encryption key, encrypts the master key, and sends
+    auth_hash + salt + encrypted_master_key here.
+    """
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    async with db_pool.acquire() as conn:
+        # Verify user exists and doesn't already have vault set up
+        existing = await conn.fetchrow(
+            "SELECT encrypted_master_key FROM users WHERE id = $1",
+            uuid.UUID(user_id),
+        )
+        if not existing:
+            raise HTTPException(status_code=404, detail="User not found")
+        if existing["encrypted_master_key"]:
+            raise HTTPException(status_code=400, detail="Vault already set up")
+
+        await conn.execute("""
+            UPDATE users SET auth_hash = $1, salt = $2, encrypted_master_key = $3
+            WHERE id = $4
+        """, request.auth_hash, request.salt, request.encrypted_master_key, uuid.UUID(user_id))
+
+    return {"message": "Vault configured successfully"}
+
+
+@app.get("/auth/vault-info")
+async def vault_info(user_id: str = Depends(get_current_user)):
+    """Get vault encryption info for the current user (salt + encrypted master key)."""
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT email, salt, encrypted_master_key FROM users WHERE id = $1",
+            uuid.UUID(user_id),
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    has_vault = row["encrypted_master_key"] is not None
+    return {
+        "email": row["email"],
+        "has_vault": has_vault,
+        "salt": row["salt"] if has_vault else None,
+        "encrypted_master_key": row["encrypted_master_key"] if has_vault else None,
+    }
 
 
 # ===========================================

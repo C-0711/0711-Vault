@@ -9,6 +9,9 @@ export const useAuth = () => useContext(AuthContext)
 import Welcome from './pages/Welcome'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import OAuthCallback from './pages/OAuthCallback'
+import UnlockVault from './pages/UnlockVault'
+import SetupVault from './pages/SetupVault'
 import Dashboard from './pages/Dashboard'
 import Photos from './pages/Photos'
 import Documents from './pages/Documents'
@@ -27,8 +30,8 @@ import Onboarding from './pages/Onboarding'
 import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-import OAuthCallback from './pages/OAuthCallback'
 import Layout from './components/Layout'
+import { getMasterKey } from './lib/crypto'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -63,22 +66,31 @@ function App() {
     )
   }
 
+  // Authenticated but vault not unlocked — only allow unlock/setup routes
+  const vaultUnlocked = user && getMasterKey()
+
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       <Routes>
-        {/* Public Routes (accessible without auth) */}
+        {/* Public routes (accessible without auth) */}
         <Route path="/s/:token" element={<SharedView />} />
-        
+        <Route path="/auth/callback" element={<OAuthCallback />} />
+
         {!user ? (
           <>
             <Route path="/" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/oauth-callback" element={<OAuthCallback />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/" />} />
+          </>
+        ) : !vaultUnlocked ? (
+          <>
+            <Route path="/unlock" element={<UnlockVault />} />
+            <Route path="/setup-vault" element={<SetupVault />} />
+            <Route path="*" element={<Navigate to="/unlock" />} />
           </>
         ) : (
           <>
