@@ -14,6 +14,7 @@ import json
 import asyncio
 import httpx
 import os
+import time
 
 from config import settings
 from database import get_db, get_neo4j, get_ollama, get_redis
@@ -23,7 +24,48 @@ router = APIRouter()
 
 # 0711-AI Gateway for chat (multi-model: Claude, Ollama, etc.)
 AI_GATEWAY_URL = os.getenv("AI_GATEWAY_URL", "http://o711-ai-gateway:8000")
-AI_GATEWAY_MODEL = os.getenv("AI_GATEWAY_MODEL", "llama4")
+AI_GATEWAY_MODEL = os.getenv("AI_GATEWAY_MODEL", "mistral")
+
+# Service-to-service auth for AI gateway (client_credentials)
+AI_GATEWAY_TOKEN_URL = os.getenv("AI_GATEWAY_TOKEN_URL", "http://o711i-prod-api:8000/oauth/token")
+AI_GATEWAY_CLIENT_ID = os.getenv("AI_GATEWAY_CLIENT_ID", "services")
+AI_GATEWAY_CLIENT_SECRET = os.getenv("AI_GATEWAY_CLIENT_SECRET", "")
+
+_cached_service_token = None
+_cached_token_expires = 0
+
+
+async def _get_gateway_headers() -> dict:
+    """Get Authorization headers for AI gateway using cached service JWT."""
+    global _cached_service_token, _cached_token_expires
+
+    if _cached_service_token and time.time() < _cached_token_expires - 60:
+        return {"Authorization": f"Bearer {_cached_service_token}"}
+
+    if not AI_GATEWAY_CLIENT_SECRET:
+        return {}
+
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                AI_GATEWAY_TOKEN_URL,
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": AI_GATEWAY_CLIENT_ID,
+                    "client_secret": AI_GATEWAY_CLIENT_SECRET,
+                    "scope": "openid",
+                },
+                timeout=10,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                _cached_service_token = data["access_token"]
+                _cached_token_expires = time.time() + data.get("expires_in", 3600)
+                return {"Authorization": f"Bearer {_cached_service_token}"}
+    except Exception:
+        pass
+
+    return {}
 
 
 # ===========================================
@@ -197,6 +239,7 @@ Query: "{query}"
 JSON response:"""
 
     try:
+        headers = await _get_gateway_headers()
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{AI_GATEWAY_URL}/ai/chat",
@@ -207,6 +250,7 @@ JSON response:"""
                     "max_tokens": 512,
                     "temperature": 0.1,
                 },
+                headers=headers,
                 timeout=30,
             )
             if r.status_code == 200:
@@ -301,6 +345,7 @@ You are running 100% locally - their data never leaves their device. You are THE
     
     # Generate response via 0711-AI gateway
     try:
+        headers = await _get_gateway_headers()
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{AI_GATEWAY_URL}/ai/chat",
@@ -310,6 +355,7 @@ You are running 100% locally - their data never leaves their device. You are THE
                     "stream": False,
                     "max_tokens": 4096,
                 },
+                headers=headers,
                 timeout=120,
             )
             if r.status_code != 200:
@@ -367,6 +413,7 @@ Be warm, helpful, and honest when you don't have information."""
     
     async def generate():
         try:
+            headers = await _get_gateway_headers()
             async with httpx.AsyncClient() as client:
                 async with client.stream(
                     "POST",
@@ -377,6 +424,7 @@ Be warm, helpful, and honest when you don't have information."""
                         "stream": True,
                         "max_tokens": 4096,
                     },
+                    headers=headers,
                     timeout=120,
                 ) as r:
                     async for line in r.aiter_lines():
